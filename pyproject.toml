@@ -1,0 +1,67 @@
+[project]
+name = "vgi-starter-worker"
+version = "0.1.0"
+description = "A VGI worker for DuckDB, generated from the Query.Farm VGI starter template."
+readme = "README.md"
+license = "MIT-0"
+license-files = ["LICENSE"]
+requires-python = ">=3.13"
+dependencies = [
+    # [http] adds the HTTP transport (`--http`) used by Docker deploys.
+    # SDK bumps go through the template (minor bumps can raise the protocol).
+    "vgi-python[http]>=0.50.0,<0.51",
+]
+
+[project.scripts]
+vgi-starter-worker = "starter_worker.worker:main"
+
+[dependency-groups]
+dev = [
+    # The pushdown recipe evaluates predicates locally; a worker that uses filter
+    # pushdown must add the `haybarn` extra to its own dependencies.
+    "vgi-python[haybarn]>=0.50.0,<0.51",
+    "pytest>=8.4",
+    "mypy>=1.18",
+    "ruff>=0.14",
+    "pyarrow-stubs>=20.0",
+]
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/starter_worker"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "SIM", "RUF", "D"]
+# RUF012: the SDK declares metadata as plain class attributes on `class Meta`.
+ignore = ["D203", "D213", "RUF012"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D"]
+"test/*" = ["D"]
+
+[tool.mypy]
+strict = true
+python_version = "3.13"
+files = ["src", "tests", "examples"]
+
+[[tool.mypy.overrides]]
+module = ["vgi.*", "vgi_rpc.*"]
+follow_untyped_imports = true
+
+[tool.pydoclint]
+style = "google"
+arg-type-hints-in-docstring = false
+check-return-types = false
+check-yield-types = false
+allow-init-docstring = true
+skip-checking-short-docstrings = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

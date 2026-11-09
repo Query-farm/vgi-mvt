@@ -1,0 +1,115 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Pinned together: the SQL test runner and the metadata checker must speak the
+  # same VGI protocol as the SDK. Template updates bump these (make template-diff).
+  HAYBARN_VERSION: "2.0.0rc11"
+
+jobs:
+  quality:
+    name: Lint + unit tests (Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - run: make lint
+      - run: make test-unit
+
+  integration:
+    name: SQL tests (${{ matrix.os }}, ${{ matrix.transport }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        # template-only:start
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        # template-only:end
+        # macOS minutes cost 10x on private repos; add macos-latest here when you need it.
+        # fork-only: os: [ubuntu-latest, windows-latest]
+        transport: [stdio, launch, http]
+        exclude:
+          - os: windows-latest
+            transport: launch   # the launcher uses AF_UNIX sockets
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+      - name: Build the worker
+        run: uv sync --locked
+      - name: Install the SQL test runner
+        run: |
+          uv venv .tools
+          uv pip install -p .tools "haybarn-unittest==${HAYBARN_VERSION}"
+      - name: Run test/sql over ${{ matrix.transport }}
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then bin="$PWD/.venv/Scripts"; tools="$PWD/.tools/Scripts"; exe=.exe
+          else bin="$PWD/.venv/bin"; tools="$PWD/.tools/bin"; exe=""; fi
+          export WORKER="$bin/vgi-starter-worker$exe"
+          export HAYBARN_UNITTEST="$tools/haybarn-unittest$exe"
+          export RECIPES_WORKER="$bin/python$exe $PWD/examples/run.py"
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            # Native python.exe can't open MSYS paths (/d/a/...), and MSYS rewrites
+            # path-like env vars it passes to native programs (mangling "D:/a" into
+            # "D;A:\"). Hand over Windows paths and exclude the variable from rewriting.
+            winbin="$(cygpath -m "$bin")"; winroot="$(cygpath -m "$PWD")"
+            RECIPES_WORKER="$winbin/python.exe $winroot/examples/run.py"
+            export MSYS2_ENV_CONV_EXCL=RECIPES_WORKER
+          fi
+          TRANSPORT=${{ matrix.transport }} PYTHON="uv run --no-project python" ci/run-integration.sh
+
+  metadata:
+    name: Metadata quality (vgi-lint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+      - run: uv sync --locked --no-dev
+      - name: Read fail_on from vgi-lint.toml
+        id: lintcfg
+        run: python3 -c 'import tomllib; print("fail_on=" + tomllib.load(open("vgi-lint.toml", "rb")).get("fail_on", "error"))' >> "$GITHUB_OUTPUT"
+      - uses: Query-farm/vgi-lint-check@v2
+        with:
+          location: ${{ github.workspace }}/.venv/bin/vgi-starter-worker
+          # Set in vgi-lint.toml, so local runs and CI agree.
+          fail-on: ${{ steps.lintcfg.outputs.fail_on }}
+          # Set to false if your examples need real credentials or network access.
+          execute: true
+
+  docker:
+    name: Docker image smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t worker:ci .
+      - name: HTTP /health
+        run: |
+          docker run -d --name smoke -p 8000:8000 worker:ci
+          for _ in $(seq 1 30); do curl -fsS http://127.0.0.1:8000/health && exit 0; sleep 1; done
+          docker logs smoke; exit 1

@@ -1,0 +1,69 @@
+name: Release
+
+# Push a tag like v0.1.0 (or publish a GitHub Release). This gates on CI, builds the
+# wheel + sdist, signs them, attaches them to the release, and optionally publishes to
+# PyPI. PyPI is opt-in: set the repository variable PYPI_PUBLISH=true and add a Trusted
+# Publisher on PyPI (workflow: release.yml, environment: pypi). No API tokens needed.
+
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    # In the template repositories a vX.Y.Z tag is a template version, not a worker
+    # release, so only a manual run builds there. Forks release on every tag.
+    if: ${{ github.event_name != 'push' || !startsWith(github.repository, 'Query-farm/vgi-starter-') }}
+    uses: ./.github/workflows/ci.yml
+
+  build:
+    needs: [ci]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write        # create the release, attach assets
+      id-token: write        # keyless signing + provenance
+      attestations: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Check the tag matches pyproject.toml
+        if: startsWith(github.ref, 'refs/tags/')
+        run: ci/check-version.sh "${GITHUB_REF_NAME}"
+      - run: uv build --sdist --wheel --out-dir dist
+      - run: uvx twine check dist/*
+      - uses: sigstore/cosign-installer@v3
+      - name: Sign
+        run: for f in dist/*; do cosign sign-blob --yes --bundle "$f.cosign.bundle" "$f"; done
+      - uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: dist/*.whl
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - name: Create the GitHub release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || gh release create "$GITHUB_REF_NAME" --generate-notes
+          gh release upload "$GITHUB_REF_NAME" dist/* --clobber
+
+  pypi:
+    needs: [build]
+    if: vars.PYPI_PUBLISH == 'true' && startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - run: rm -f dist/*.cosign.bundle
+      - uses: pypa/gh-action-pypi-publish@release/v1

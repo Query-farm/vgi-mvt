@@ -1,0 +1,1 @@
+"""VGI starter worker package."""

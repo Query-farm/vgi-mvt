@@ -1,0 +1,16 @@
+{
+  "template": "vgi-starter-python",
+  "lang": "python",
+  "template_version": "1.2.0",
+  "post_init": [
+    "uv lock",
+    "uv run --quiet ruff format src tests test examples"
+  ],
+  "template_only_files": [
+    ".github/workflows/template-init.yml"
+  ],
+  "optional_files": [
+    ".github/workflows/nightly.yml",
+    ".github/dependabot.yml"
+  ]
+}
