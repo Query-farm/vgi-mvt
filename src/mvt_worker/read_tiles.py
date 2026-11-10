@@ -30,7 +30,7 @@ from vgi_rpc import ArrowSerializableDataclass
 
 from .edges import TILE_EDGE_CHOICES, EdgeAssembler, TileEdges
 from .meta import FIRENZE_PMTILES, STREETS_TILE, ZCTA_PMTILES, object_tags
-from .mvt import COORDINATE_CHOICES, Coordinates, decode_tile
+from .mvt import COORDINATE_CHOICES, Coordinates, decode_tile, tile_context
 from .pushdown import INTERSECTS_EXTENT, clamp_to_world, intersect, pushed_bbox
 from .rows import RowBuilder, attribute_fields, dynamic_columns_md, infer_field_types, output_schema
 from .sources import BBox, TileKey, TileSourceError, open_source, read_bytes
@@ -469,7 +469,8 @@ class ReadMvt(TableFunctionGenerator[ReadMvtArgs, DoneState]):
         _check_xy(args.z, args.x, args.y)
         extra = []
         if args.layer is not None:
-            layers = decode_tile(_tile_bytes(args.source), layer_filter=args.layer)
+            with tile_context(args.z, args.x, args.y):
+                layers = decode_tile(_tile_bytes(args.source), layer_filter=args.layer)
             extra = attribute_fields(infer_field_types(layers))
         return BindResponse(output_schema=output_schema(extra, args.coordinates))
 

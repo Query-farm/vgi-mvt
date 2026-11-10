@@ -16,7 +16,7 @@ from typing import Any
 import pyarrow as pa
 
 from .meta import column
-from .mvt import Coordinates, Layer, Projector, PropertyValue, decode_tile, feature_wkb
+from .mvt import Coordinates, Layer, Projector, PropertyValue, decode_tile, feature_wkb, tile_context
 
 JSON_METADATA = {b"ARROW:extension:name": b"arrow.json"}
 
@@ -190,8 +190,9 @@ class RowBuilder:
 
     def add_tile(self, z: int, x: int, y: int, data: bytes) -> None:
         """Decode one tile's bytes and append its features."""
-        for layer in decode_tile(data, layer_filter=self.layer):
-            self.add_layer(z, x, y, layer)
+        with tile_context(z, x, y):
+            for layer in decode_tile(data, layer_filter=self.layer):
+                self.add_layer(z, x, y, layer)
 
     def add_layer(self, z: int, x: int, y: int, layer: Layer) -> None:
         """Append the features of one decoded layer."""

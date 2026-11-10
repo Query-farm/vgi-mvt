@@ -11,7 +11,7 @@ HAYBARN_UNITTEST := $(TOOLS)/bin/haybarn-unittest
 TRANSPORT       ?= stdio
 
 .DEFAULT_GOAL := help
-.PHONY: help build test test-unit test-sql test-sql-all lint lint-explain lint-ai fmt check run run-http debug tools template-diff clean
+.PHONY: help build test test-unit test-sql test-sql-all lint lint-explain lint-ai conformance bench fmt check run run-http debug tools template-diff clean
 
 help: ## List the targets
 	@awk 'BEGIN{FS=":.*## "} /^[a-zA-Z_-]+:.*## /{printf "  %-14s %s\n",$$1,$$2}' $(MAKEFILE_LIST)
@@ -54,6 +54,10 @@ lint-ai: ## Opt-in L3 check: an agent runs vgi-agent-tests.yaml and docs are rev
 
 check: lint test-unit test-sql-all lint-explain ## Everything CI runs. Done = this passes.
 
+CONFORMANCE_ARGS ?=
+conformance: build ## Decoder vs Mapbox's mvt-fixtures and mapbox-vector-tile, plus a fuzz run (downloads to .cache/)
+	uv run --with mapbox-vector-tile python scripts/conformance.py $(CONFORMANCE_ARGS)
+
 run: build ## Serve over stdio (what DuckDB launches)
 	$(WORKER)
 
@@ -68,4 +72,4 @@ template-diff: ## Show upstream template changes since this project was created
 	uv run --no-project python scripts/vgi_template.py template-diff --stat
 
 clean: ## Remove build outputs and tool caches
-	rm -rf .venv .tools dist build .mypy_cache .ruff_cache .pytest_cache
+	rm -rf .venv .tools .cache dist build .mypy_cache .ruff_cache .pytest_cache

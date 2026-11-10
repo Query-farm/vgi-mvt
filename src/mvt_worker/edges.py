@@ -37,7 +37,7 @@ import numpy as np
 import shapely
 from shapely.errors import GEOSException
 
-from .mvt import Coordinates, Projector, PropertyValue, Ring, decode_geometry, decode_tile, parts_wkb
+from .mvt import Coordinates, Projector, PropertyValue, Ring, decode_geometry, decode_tile, parts_wkb, tile_context
 from .rows import RowBuilder
 from .sources import TileKey, TileSource
 
@@ -47,6 +47,7 @@ TILE_EDGE_CHOICES: tuple[TileEdges, ...] = ("merge", "clip", "raw")
 REF = 1 << 16  # global grid units per tile: exact for every power-of-two extent up to 65536
 _HALF_CIRCUMFERENCE = math.pi * 6378137.0
 _NEIGHBOUR_CACHE = 256
+_PREFETCH = 32  # extra tiles fetched with each neighbour load
 EDGE_MARGIN = 16  # a feature within extent/16 of an edge (256 px of 4096) may continue in the next tile
 
 # (layer, feature id, geometry dimension, properties as JSON)
@@ -177,7 +178,7 @@ def project_global(geom: Any, z: int, x: int, y: int, extent: int, coordinates: 
             h = _HALF_CIRCUMFERENCE
             return np.column_stack((gx / size * 2 * h - h, h - gy / size * 2 * h))
         lon = gx / size * 360.0 - 180.0
-        lat = np.degrees(np.arctan(np.sinh(np.pi * (1.0 - 2.0 * gy / size))))
+        lat = np.degrees(np.arctan(np.sinh(np.clip(np.pi * (1.0 - 2.0 * gy / size), -40.0, 40.0))))
         return np.column_stack((lon, lat))
 
     out = shapely.transform(geom, fn)
@@ -192,6 +193,17 @@ def split_tile(
     coordinates: Coordinates,
 ) -> tuple[list[Row], list[Piece]]:
     """Split a tile into finished rows (owned points, features clear of every edge) and edge pieces."""
+    with tile_context(*key):
+        return _split_tile(key, data, layer_filter=layer_filter, coordinates=coordinates)
+
+
+def _split_tile(
+    key: TileKey,
+    data: bytes,
+    *,
+    layer_filter: str | None,
+    coordinates: Coordinates,
+) -> tuple[list[Row], list[Piece]]:
     z, x, y = key
     rows: list[Row] = []
     pieces: list[Piece] = []
@@ -290,7 +302,8 @@ class EdgeAssembler:
     ) -> None:
         """Bind to the tile list being read."""
         self.source = source
-        self.order = {k: i for i, k in enumerate(keys)}
+        self.keys = list(keys)
+        self.order = {k: i for i, k in enumerate(self.keys)}
         self.layer_filter = layer_filter
         self.coordinates = coordinates
         self.mode = mode
@@ -384,6 +397,14 @@ class EdgeAssembler:
         missing = [k for k in keys if k in self.order and k not in self._tiles]
         if not missing:
             return
+        # The tiles that follow in read order are needed next anyway: fetch them in the
+        # same round trip (remote PMTiles coalesces neighbouring tiles into one request).
+        nxt = max(self.order[k] for k in missing) + 1
+        want = set(missing)
+        for k in self.keys[nxt : nxt + _PREFETCH]:
+            if k not in self._tiles and k not in want:
+                missing.append(k)
+                want.add(k)
         got = dict(self.source.fetch(missing))
         for k in missing:
             data = got.get(k)

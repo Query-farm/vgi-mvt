@@ -12,11 +12,11 @@ the tile's ``z/x/y``; the only loss is the quantisation the encoder applied.
 
 from __future__ import annotations
 
-import gzip
 import math
 import struct
 import zlib
 from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import Literal
 
@@ -29,9 +29,27 @@ GEOM_TYPES = {0: "UNKNOWN", 1: "POINT", 2: "LINESTRING", 3: "POLYGON"}
 
 _EARTH_HALF_CIRCUMFERENCE = math.pi * 6378137.0
 
+# A decompressed tile larger than this is refused. Real tiles are well under 10 MiB
+# (Mapbox caps them at 500 KiB compressed); the cap stops a few kilobytes of gzip
+# from expanding into gigabytes of memory.
+MAX_TILE_BYTES = 64 << 20
+
+_U64 = (1 << 64) - 1
+
 
 class MvtDecodeError(ValueError):
     """The bytes are not a valid vector tile."""
+
+
+@contextmanager
+def tile_context(z: int, x: int, y: int) -> Iterator[None]:
+    """Name the tile in any :class:`MvtDecodeError` raised inside the block."""
+    try:
+        yield
+    except MvtDecodeError as exc:
+        if str(exc).startswith("tile "):
+            raise
+        raise MvtDecodeError(f"tile {z}/{x}/{y} is not a valid vector tile: {exc}") from exc
 
 
 # ---------------------------------------------------------------- protobuf
@@ -48,7 +66,7 @@ def read_varint(buf: bytes, pos: int) -> tuple[int, int]:
         pos += 1
         result |= (b & 0x7F) << shift
         if b < 0x80:
-            return result, pos
+            return result & _U64, pos  # protobuf truncates varints to 64 bits
         shift += 7
         if shift > 70:
             raise MvtDecodeError("varint too long")
@@ -102,12 +120,14 @@ def _zigzag(n: int) -> int:
 
 def _decode_value(buf: bytes) -> PropertyValue | None:
     result: PropertyValue | None = None
-    for num, _wire, val in _fields(buf):
-        if num == 1 and isinstance(val, bytes):
+    for num, wire, val in _fields(buf):
+        # Check the wire type, not just the Python type: a corrupt tile can put a
+        # length-delimited field where a fixed32/fixed64 float belongs.
+        if num == 1 and wire == 2 and isinstance(val, bytes):
             result = val.decode("utf-8", errors="replace")
-        elif num == 2 and isinstance(val, bytes):
+        elif num == 2 and wire == 5 and isinstance(val, bytes):
             result = struct.unpack("<f", val)[0]
-        elif num == 3 and isinstance(val, bytes):
+        elif num == 3 and wire == 1 and isinstance(val, bytes):
             result = struct.unpack("<d", val)[0]
         elif num == 4 and isinstance(val, int):
             result = val - (1 << 64) if val >= 1 << 63 else val
@@ -143,16 +163,46 @@ class Layer:
     features: list[Feature] = field(default_factory=list)
 
 
-def maybe_decompress(data: bytes) -> bytes:
-    """Undo gzip/zlib compression, which most tile stores apply to MVT bytes."""
+def maybe_decompress(data: bytes, limit: int = MAX_TILE_BYTES) -> bytes:
+    """Undo gzip/zlib compression, which most tile stores apply to MVT bytes.
+
+    Output is capped at ``limit`` bytes (:data:`MAX_TILE_BYTES`); corrupt or
+    oversized input raises :class:`MvtDecodeError`. Raw MVT never starts with
+    the gzip or zlib magic, so sniffing is safe.
+    """
     if data[:2] == b"\x1f\x8b":
-        return gzip.decompress(data)
+        return _inflate(data, 16 + zlib.MAX_WBITS, limit, "gzip")
     if len(data) >= 2 and data[0] == 0x78 and (data[0] * 256 + data[1]) % 31 == 0:
         try:
-            return zlib.decompress(data)
-        except zlib.error:
-            return data
+            return _inflate(data, zlib.MAX_WBITS, limit, "zlib")
+        except _NotCompressedError:
+            return data  # zlib-looking bytes that are not zlib
     return data
+
+
+class _NotCompressedError(MvtDecodeError):
+    pass
+
+
+def _inflate(data: bytes, wbits: int, limit: int, kind: str) -> bytes:
+    out: list[bytes] = []
+    size = 0
+    rest = data
+    while rest:  # gzip allows several concatenated members
+        d = zlib.decompressobj(wbits)
+        try:
+            chunk = d.decompress(rest, limit - size + 1)
+        except zlib.error as exc:
+            err = _NotCompressedError if kind == "zlib" and not out else MvtDecodeError
+            raise err(f"corrupt {kind} data: {exc}") from exc
+        size += len(chunk)
+        out.append(chunk)
+        if size > limit or d.unconsumed_tail:
+            raise MvtDecodeError(f"tile expands past {limit >> 20} MiB when decompressed")
+        if not d.eof:
+            raise MvtDecodeError(f"truncated {kind} data")
+        rest = d.unused_data if kind == "gzip" else b""
+    return b"".join(out)
 
 
 def decode_tile(data: bytes, *, layer_filter: str | None = None) -> list[Layer]:
@@ -306,6 +356,10 @@ def _bbox_contains(outer: tuple[int, int, int, int], inner: tuple[int, int, int,
     return outer[0] <= inner[0] and outer[1] <= inner[1] and outer[2] >= inner[2] and outer[3] >= inner[3]
 
 
+# Above this many rings in one v1 feature, group by winding instead of nesting.
+_MAX_NESTING_RINGS = 5000
+
+
 def classify_rings_by_nesting(rings: list[Ring]) -> list[list[Ring]]:
     """Group rings by containment, ignoring winding: even nesting depth = exterior, odd = hole.
 
@@ -314,6 +368,8 @@ def classify_rings_by_nesting(rings: list[Ring]) -> list[list[Ring]]:
     signal there. A ring's depth is the number of larger rings containing a
     sample point of it.
     """
+    if len(rings) > _MAX_NESTING_RINGS:
+        return classify_rings(rings)  # nesting is quadratic; fall back to winding
     items = []
     for ring in rings:
         area = abs(_signed_area(ring))
@@ -372,7 +428,9 @@ class Projector:
             return out
         for px, py in ring:
             out.append((x0 + px) / size * 360.0 - 180.0)
-            out.append(math.degrees(math.atan(math.sinh(math.pi * (1.0 - 2.0 * (y0 + py) / size)))))
+            t = math.pi * (1.0 - 2.0 * (y0 + py) / size)
+            # |t| > 40 is already ±90° in double precision; clamping keeps sinh from overflowing.
+            out.append(math.degrees(math.atan(math.sinh(max(-40.0, min(40.0, t))))))
         return out
 
 

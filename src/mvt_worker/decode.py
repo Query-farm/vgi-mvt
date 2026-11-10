@@ -20,7 +20,7 @@ from vgi.table_function import BindParams, ProcessParams
 from vgi.table_in_out_function import OutputCollector, TableInOutGenerator
 
 from .meta import object_tags
-from .mvt import COORDINATE_CHOICES, Coordinates, MvtDecodeError
+from .mvt import COORDINATE_CHOICES, Coordinates
 from .rows import RESULT_COLUMNS_DOC, RowBuilder, output_schema
 
 TILE_COLUMNS = ("tile", "tile_data")
@@ -134,8 +134,5 @@ class MvtDecode(TableInOutGenerator[MvtDecodeArgs]):
         for tile, z, x, y in zip(tiles, zs, xs, ys, strict=True):
             if tile is None or z is None or x is None or y is None:
                 continue
-            try:
-                rows.add_tile(int(z), int(x), int(y), tile)
-            except MvtDecodeError as exc:
-                raise ValueError(f"tile {z}/{x}/{y} is not a valid vector tile: {exc}") from exc
+            rows.add_tile(int(z), int(x), int(y), tile)  # errors name the tile
         out.emit(rows.take())

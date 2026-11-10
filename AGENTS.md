@@ -40,7 +40,7 @@ test/fixtures/     # committed tilesets; regenerate with scripts/make_fixtures.s
 test/tile_server.py  # range-capable static server for the offline HTTP tests
 examples/          # starter recipes: pushdown, caching, catalog tables, aggregates, COPY …
 ci/                # integration harness used by `make test-sql` and CI
-scripts/           # vgi_template.py (template-diff), make_fixtures.sh
+scripts/           # vgi_template.py (template-diff), make_fixtures.sh, conformance.py (make conformance)
 vgi-agent-tests.yaml  # private graders for the agent test tasks
 ```
 
@@ -48,6 +48,9 @@ Correctness oracle: GDAL's MVT/PMTiles/MBTiles readers (`ST_Read(..., open_optio
 ['ZOOM_LEVEL=14','CLIP=NO'])`). With `tile_edges := 'raw'`, feature counts, vertex counts,
 areas and lengths should match it exactly for MVT v2 tiles. For the default `'merge'`, check
 that rows equal distinct `feature_id`s and that the area and length sums equal `'clip'`'s.
+After any change to `mvt.py` or `sources.py`, run `make conformance`: Mapbox's mvt-fixtures,
+a feature-by-feature diff against mapbox-vector-tile, and a fuzz run. Only `MvtDecodeError`
+(or `TileSourceError`) may escape the decoder.
 
 ## Recipe: add a function
 
