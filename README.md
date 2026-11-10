@@ -47,8 +47,8 @@ SELECT category_main, count(*) AS n FROM places.pois GROUP BY ALL ORDER BY n DES
 ```
 
 A `WHERE ST_Intersects(geometry, …)` filter on a layer table is applied correctly, but it does
-not yet narrow which tiles are read: the VGI extension does not send spatial predicates to
-the worker yet. Use the `bbox` option to scope a large archive. A bad path, a `{z}/{x}/{y}`
+not yet narrow which tiles are read: the worker does not yet accept the bounding box that the
+VGI extension can push down. Use the `bbox` option to scope a large archive. A bad path, a `{z}/{x}/{y}`
 template (which has no layer list) or a malformed `bbox` fails at `ATTACH` time.
 
 **Or call the reader functions directly:**
