@@ -110,7 +110,16 @@ class TilesetLayers(TableFunctionGenerator[SourceArgs, Once]):
                 ]
             ),
         }
+        # The first example uses a committed fixture: tools (and vgi-lint's scan probe) take sample
+        # arguments from it, so it must work offline. The public-tileset examples follow.
         examples = [
+            FunctionExample(
+                sql=(
+                    "SELECT layer, list(field ORDER BY field) AS attributes FROM mvt.main.tileset_layers("
+                    "'test/fixtures/sample.mbtiles') GROUP BY layer ORDER BY layer"
+                ),
+                description="Attribute names of each layer of the fixture MBTiles",
+            ),
             FunctionExample(
                 sql=(
                     "SELECT layer, count(field) AS attributes FROM mvt.main.tileset_layers("
@@ -223,7 +232,16 @@ class TilesetMetadata(TableFunctionGenerator[SourceArgs, Once]):
                 ]
             ),
         }
+        # The first example uses a committed fixture: tools (and vgi-lint's scan probe) take sample
+        # arguments from it, so it must work offline. The public-tileset examples follow.
         examples = [
+            FunctionExample(
+                sql=(
+                    "SELECT key, value FROM mvt.main.tileset_metadata('test/fixtures/sample.pmtiles') "
+                    "WHERE key IN ('name', 'bounds') ORDER BY key"
+                ),
+                description="Name and bounds of the fixture PMTiles archive",
+            ),
             FunctionExample(
                 sql=(f"SELECT value FROM mvt.main.tileset_metadata('{ZCTA_PMTILES}') WHERE key = 'maxzoom'"),
                 description="Max zoom of a remote PMTiles archive (reads only its header)",

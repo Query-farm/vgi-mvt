@@ -96,6 +96,20 @@ def _drop_connection(scheme: str, netloc: str) -> None:
         conn.close()
 
 
+def _send(scheme: str, netloc: str, path: str, headers: dict[str, str]) -> http.client.HTTPResponse:
+    """Send a GET on the pooled connection; a failed connection never stays in the pool."""
+    for fresh in (False, True):
+        conn = _connection(scheme, netloc)
+        try:
+            conn.request("GET", path, headers=headers)
+            return conn.getresponse()
+        except (http.client.HTTPException, OSError):
+            _drop_connection(scheme, netloc)
+            if fresh:  # the first failure may just be a stale keep-alive socket; a second is real
+                raise
+    raise AssertionError("unreachable")  # pragma: no cover
+
+
 def _get_once(url: str, headers: dict[str, str], byte_range: tuple[int, int] | None) -> bytes | None:
     """One GET (following up to 5 redirects); raises _HttpStatusError for retryable/error statuses."""
     if urllib.request.getproxies():  # honour HTTP(S)_PROXY: let urllib route the request
@@ -105,15 +119,7 @@ def _get_once(url: str, headers: dict[str, str], byte_range: tuple[int, int] | N
         path = parts.path or "/"
         if parts.query:
             path += "?" + parts.query
-        conn = _connection(parts.scheme, parts.netloc)
-        try:
-            conn.request("GET", path, headers=headers)
-            resp = conn.getresponse()
-        except (http.client.HTTPException, OSError):
-            _drop_connection(parts.scheme, parts.netloc)  # a stale keep-alive socket: retry fresh once
-            conn = _connection(parts.scheme, parts.netloc)
-            conn.request("GET", path, headers=headers)
-            resp = conn.getresponse()
+        resp = _send(parts.scheme, parts.netloc, path, headers)
         try:
             if resp.status in (301, 302, 303, 307, 308) and resp.getheader("Location"):
                 resp.read()

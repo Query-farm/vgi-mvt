@@ -266,7 +266,23 @@ class ReadTiles(TableFunctionGenerator[ReadTilesArgs, TileCursor]):
                 ]
             ),
         }
+        # The first example uses a committed fixture: tools (and vgi-lint's scan probe) take sample
+        # arguments from it, so it must work offline. The public-tileset examples follow.
         examples = [
+            FunctionExample(
+                sql=(
+                    "SELECT layer, geometry_type, count(*) AS features, round(sum(ST_Area(geometry)), 1) AS area "
+                    "FROM mvt.main.read_tiles('test/fixtures/edges.pmtiles', zoom := 3) GROUP BY ALL ORDER BY ALL"
+                ),
+                description="Features per layer of the fixture tileset: one row each, joined across tile edges",
+            ),
+            FunctionExample(
+                sql=(
+                    "SELECT layer, count(*) AS features FROM mvt.main.read_tiles('test/fixtures/sample.pmtiles') "
+                    "WHERE ST_Intersects(geometry, ST_MakeEnvelope(8, 44, 18, 54)) GROUP BY layer ORDER BY layer"
+                ),
+                description="A spatial filter on the geometry also chooses which tiles are read",
+            ),
             FunctionExample(
                 sql=(
                     "SELECT properties->>'pmap:kind' AS kind, count(*) AS n FROM mvt.main.read_tiles("
@@ -444,7 +460,16 @@ class ReadMvt(TableFunctionGenerator[ReadMvtArgs, DoneState]):
                 ]
             ),
         }
+        # The first example uses a committed fixture: tools (and vgi-lint's scan probe) take sample
+        # arguments from it, so it must work offline. The public-tileset examples follow.
         examples = [
+            FunctionExample(
+                sql=(
+                    "SELECT name, geometry FROM mvt.main.read_mvt('test/fixtures/0-0-0.mvt', 0, 0, 0, "
+                    "layer := 'cities') ORDER BY population DESC"
+                ),
+                description="Cities from one tile with their attributes as typed columns",
+            ),
             FunctionExample(
                 sql=(
                     "SELECT layer, count(*) AS features FROM mvt.main.read_mvt("
@@ -452,13 +477,6 @@ class ReadMvt(TableFunctionGenerator[ReadMvtArgs, DoneState]):
                     "14, 8801, 5371) GROUP BY layer ORDER BY features DESC"
                 ),
                 description="Feature counts per layer of a Mapbox Streets sample tile",
-            ),
-            FunctionExample(
-                sql=(
-                    "SELECT name, geometry FROM mvt.main.read_mvt('test/fixtures/0-0-0.mvt', 0, 0, 0, "
-                    "layer := 'cities') ORDER BY population DESC"
-                ),
-                description="Cities from one tile with their attributes as typed columns",
             ),
         ]
 

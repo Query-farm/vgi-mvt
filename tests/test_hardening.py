@@ -255,3 +255,33 @@ def test_coalesce_spans() -> None:
     spans = sources._coalesce([(0, 10), (10, 5), (20 + gap, 5), (20 + gap, 5), (10**9, 1)])
     assert [(s, n) for s, n, _ in spans] == [(0, 15), (20 + gap, 5), (10**9, 1)]
     assert spans[0][2] == [(0, 10), (10, 5)]
+
+
+def test_v1_ring_nesting_falls_back_to_winding_above_the_cap() -> None:
+    """Nesting is quadratic: past _MAX_NESTING_RINGS a v1 feature groups rings by winding."""
+    from mvt_worker import mvt
+
+    outer = [(0, 0), (100, 0), (100, 100), (0, 100), (0, 0)]
+    inner = [(10, 10), (20, 10), (20, 20), (10, 20), (10, 10)]  # same winding as outer: nesting says hole
+    assert [len(p) for p in mvt.classify_rings_by_nesting([outer, inner])] == [2]
+    tiny = [[(x, 200), (x + 1, 200), (x + 1, 201), (x, 201), (x, 200)] for x in range(0, 2 * mvt._MAX_NESTING_RINGS, 2)]
+    rings = [outer, inner, *tiny]
+    start = time.perf_counter()
+    polygons = mvt.classify_rings_by_nesting(rings)
+    assert time.perf_counter() - start < 1.0
+    assert len(polygons) == len(rings)  # winding: every same-signed ring is its own polygon
+    assert polygons == mvt.classify_rings(rings)
+
+
+def test_a_failed_connection_does_not_stay_in_the_pool(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A connection that failed twice used to stay pooled, breaking every later request on the thread."""
+    import socket
+
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        port = s.getsockname()[1]  # closed once the block exits: connections are refused
+    monkeypatch.setattr(sources, "HTTP_RETRIES", 0)
+    url = f"http://127.0.0.1:{port}/x.pmtiles"
+    with pytest.raises(sources.TileSourceError, match="cannot fetch"):
+        sources.http_get(url, (0, 10))
+    assert ("http", f"127.0.0.1:{port}") not in sources._LOCAL.__dict__.get("conns", {})
