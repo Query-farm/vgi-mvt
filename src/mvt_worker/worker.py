@@ -1,17 +1,16 @@
-"""Assemble the functions into a catalog and run the worker.
+"""Assemble the vector tile functions into a catalog and run the worker.
 
-To add a function: write it (see ``greet.py`` / ``sequence.py`` /
-``fetch_items.py``), then add the class to ``FUNCTIONS`` below.
+To add a function: write it, then add the class to ``FUNCTIONS`` below.
 
 Run it:
 
-    vgi-starter-worker                      # stdio: what DuckDB launches by default
-    vgi-starter-worker --http --port 8000   # HTTP: for Docker / hosted deploys
-    vgi-starter-worker --help
+    vgi-mvt-worker                      # stdio: what DuckDB launches by default
+    vgi-mvt-worker --http --port 8000   # HTTP: for Docker / hosted deploys
+    vgi-mvt-worker --help
 
 Attach it from DuckDB:
 
-    ATTACH 'starter' (TYPE vgi, LOCATION '/abs/path/to/.venv/bin/vgi-starter-worker');
+    ATTACH 'mvt' (TYPE vgi, LOCATION '/abs/path/to/.venv/bin/vgi-mvt-worker');
 """
 
 from __future__ import annotations
@@ -22,8 +21,8 @@ from typing import Any
 from vgi import Worker
 from vgi.catalog import Catalog, Schema
 
-from .fetch_items import API_SECRET_TYPE, FetchItems
-from .greet import Greet, GreetWithStyle
+from .decode import MvtDecode
+from .layers import TilesetLayers, TilesetMetadata
 from .meta import (
     CATALOG_DOC_MD,
     CATALOG_NAME,
@@ -34,9 +33,9 @@ from .meta import (
     SOURCE_URL,
     keywords_array,
 )
-from .sequence import SequenceTable
+from .read_tiles import ReadMvt, ReadTiles
 
-FUNCTIONS: list[type[Any]] = [Greet, GreetWithStyle, SequenceTable, FetchItems]
+FUNCTIONS: list[type[Any]] = [ReadTiles, ReadMvt, MvtDecode, TilesetLayers, TilesetMetadata]
 
 
 def _stamp_example_queries(functions: list[type[Any]]) -> list[dict[str, str]]:
@@ -60,7 +59,7 @@ def _stamp_example_queries(functions: list[type[Any]]) -> list[dict[str, str]]:
 _ALL_EXAMPLES = _stamp_example_queries(FUNCTIONS)
 
 
-class StarterWorker(Worker):
+class MvtWorker(Worker):
     """The worker process: one catalog, one ``main`` schema."""
 
     catalog = Catalog(
@@ -74,9 +73,11 @@ class StarterWorker(Worker):
                 comment=SCHEMA_DOC_MD,
                 functions=FUNCTIONS,
                 tags={
-                    "vgi.title": "Starter Functions",
-                    "domain": "examples",
-                    "vgi.keywords": keywords_array("greeting, sequence, generator, rest api, pagination"),
+                    "vgi.title": "Vector Tile Functions",
+                    "domain": "geospatial",
+                    "vgi.keywords": keywords_array(
+                        "vector tiles, mvt, pmtiles, mbtiles, tileset, decode, geometry, layers"
+                    ),
                     "vgi.doc_llm": SCHEMA_DOC_LLM,
                     "vgi.doc_md": SCHEMA_DOC_MD,
                     "vgi.categories": json.dumps(SCHEMA_CATEGORIES),
@@ -86,12 +87,10 @@ class StarterWorker(Worker):
         ],
     )
 
-    secret_types = [API_SECRET_TYPE]
-
 
 def main() -> None:
     """Console-script entry point: parse ``--http`` / ``--unix`` / logging flags and serve."""
-    StarterWorker.main()
+    MvtWorker.main()
 
 
 if __name__ == "__main__":

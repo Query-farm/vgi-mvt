@@ -1,0 +1,4 @@
+{"type":"FeatureCollection","features":[
+{"type":"Feature","properties":{"code":"A","label":"Square with a hole","area_rank":1},"geometry":{"type":"Polygon","coordinates":[[[5,44],[15,44],[15,52],[5,52],[5,44]],[[8,46],[12,46],[12,50],[8,50],[8,46]]]}},
+{"type":"Feature","properties":{"code":"B","label":"Triangle","area_rank":2},"geometry":{"type":"Polygon","coordinates":[[[20,42],[30,42],[25,50],[20,42]]]}}
+]}

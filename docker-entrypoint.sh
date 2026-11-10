@@ -3,7 +3,7 @@
 # Anything else is exec'd as-is (debugging).
 set -e
 case "${1:-http}" in
-  http)  [ $# -gt 0 ] && shift; exec vgi-starter-worker --http --host 0.0.0.0 --port "${PORT:-8000}" "$@" ;;
-  stdio) shift; exec vgi-starter-worker "$@" ;;
+  http)  [ $# -gt 0 ] && shift; exec vgi-mvt-worker --http --host 0.0.0.0 --port "${PORT:-8000}" "$@" ;;
+  stdio) shift; exec vgi-mvt-worker "$@" ;;
   *)     exec "$@" ;;
 esac

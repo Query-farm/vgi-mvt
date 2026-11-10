@@ -5,25 +5,17 @@ HAYBARN_VERSION ?= 2.0.0rc11
 # vgi-lint is deliberately not pinned: the gate tracks the current quality bar.
 VGI_LINT        := uvx --prerelease=allow --from 'vgi-lint-check>=2,<3' vgi-lint lint
 LINT_ARGS       ?=
-WORKER          := $(CURDIR)/.venv/bin/vgi-starter-worker
+WORKER          := $(CURDIR)/.venv/bin/vgi-mvt-worker
 TOOLS           := $(CURDIR)/.tools
 HAYBARN_UNITTEST := $(TOOLS)/bin/haybarn-unittest
 TRANSPORT       ?= stdio
 
 .DEFAULT_GOAL := help
 .PHONY: help build test test-unit test-sql test-sql-all lint lint-explain lint-ai fmt check run run-http debug tools template-diff clean
-# template-only:start
-.PHONY: init
-# template-only:end
 
 help: ## List the targets
 	@awk 'BEGIN{FS=":.*## "} /^[a-zA-Z_-]+:.*## /{printf "  %-14s %s\n",$$1,$$2}' $(MAKEFILE_LIST)
 
-# template-only:start
-init: ## Rename this template: make init NAME=weather
-	@test -n "$(NAME)" || { echo "usage: make init NAME=<snake_case_name>"; exit 2; }
-	uv run --no-project python scripts/vgi_template.py init $(NAME)
-# template-only:end
 
 build: ## Install the worker and dev tools into .venv
 	uv sync --locked
@@ -69,7 +61,7 @@ run-http: build ## Serve over HTTP on port 8000
 	$(WORKER) --http --host 127.0.0.1 --port 8000
 
 debug: build tools ## Run one query against the worker with debug logging on stderr
-	@printf "LOAD vgi;\nATTACH 'starter' (TYPE vgi, LOCATION '$(WORKER) --debug');\nSELECT starter.main.greet('debug');\n" \
+	@printf "LOAD vgi;\nATTACH 'mvt' (TYPE vgi, LOCATION '$(WORKER) --debug');\nSELECT layer, count(*) FROM mvt.main.read_tiles('$(CURDIR)/test/fixtures/sample.pmtiles') GROUP BY layer;\n" \
 	  | uvx --from haybarn-cli==$(HAYBARN_VERSION) haybarn -no-agent
 
 template-diff: ## Show upstream template changes since this project was created

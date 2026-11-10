@@ -1,16 +1,27 @@
 # Private graders for the public vgi.agent_test_tasks in the worker's catalog metadata.
-# `vgi-lint lint --ai` runs an agent on each prompt and grades it with check_sql.
+# `vgi-lint lint --ai` runs an agent on each prompt and grades it with reference_sql/check_sql.
 # See https://github.com/Query-farm/vgi-lint-check (VGI920).
 tasks:
-  - name: formal_greeting
-    reference_sql: SELECT starter.main.greet('Grace', 'formal') AS greeting
-  - name: sum_of_squares
-    reference_sql: SELECT sum(squared) AS total FROM starter.main.sequence_table(10)
-  - name: stepped_sequence
-    reference_sql: SELECT n FROM starter.main.sequence_table(4, step := 5) ORDER BY n
-  # Reads the public demo API (https://vgi-starter-api.query-farm.services/v1).
-  - name: items_per_category
-    check_sql: >-
-      SELECT count(*) = 3 AND sum(items) = 25
-      FROM (SELECT category, count(*) AS items
-            FROM starter.main.fetch_items('https://vgi-starter-api.query-farm.services/v1') GROUP BY category)
+  - name: fixture_city_count
+    reference_sql: >-
+      SELECT count(*) AS features
+      FROM mvt.main.read_tiles('test/fixtures/sample.pmtiles', zoom := 3, layer := 'cities')
+  - name: largest_city
+    reference_sql: >-
+      SELECT name FROM mvt.main.read_tiles('test/fixtures/sample.mbtiles', layer := 'cities')
+      ORDER BY population DESC LIMIT 1
+  - name: fixture_maxzoom
+    reference_sql: >-
+      SELECT value AS maxzoom FROM mvt.main.tileset_metadata('test/fixtures/sample.pmtiles') WHERE key = 'maxzoom'
+  - name: tile_polygons
+    reference_sql: >-
+      SELECT count(*) AS polygons FROM mvt.main.read_mvt('test/fixtures/0-0-0.mvt', 0, 0, 0)
+      WHERE geometry_type IN ('POLYGON', 'MULTIPOLYGON')
+  - name: region_attributes
+    reference_sql: >-
+      SELECT field FROM mvt.main.tileset_layers('test/fixtures/sample.pmtiles') WHERE layer = 'regions' ORDER BY field
+  - name: decode_mbtiles_rows
+    reference_sql: >-
+      SELECT count(*) AS features FROM mvt.main.mvt_decode((
+        SELECT tile_data AS tile, zoom_level AS z, tile_column AS x, (1 << zoom_level) - 1 - tile_row AS y
+        FROM sqlite_scan('test/fixtures/sample.mbtiles', 'tiles') WHERE zoom_level = 2))

@@ -12,5 +12,8 @@
   "optional_files": [
     ".github/workflows/nightly.yml",
     ".github/dependabot.yml"
-  ]
+  ],
+  "name": "mvt",
+  "repo": "your-org/vgi-mvt",
+  "initialized": "2026-11-10"
 }

@@ -1,5 +1,5 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = ">=3.13"
 resolution-markers = [
     "python_full_version >= '3.15'",
@@ -594,6 +594,15 @@ wheels = [
 ]
 
 [[package]]
+name = "pmtiles"
+version = "3.8.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/b9/b4/d1f0d62e37c885c441ef34360a72d9350ab87924ac5eb60b762ef9e14466/pmtiles-3.8.1.tar.gz", hash = "sha256:0f594a61b37fca039f06162428781f76a4233f5beea94444702f0dc41f20f007", size = 14931, upload-time = "2026-09-16T18:37:09.704Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/06/d4/1c451e0fb91caa3826a4ea34514ee6742802db3cbef3209976051e989d17/pmtiles-3.8.1-py3-none-any.whl", hash = "sha256:718561bb21f8c7dd5464fdcc3b9ad0e7b1c917be60ddfdf9a5ab56b8c67f7bde", size = 17058, upload-time = "2026-09-16T18:37:08.283Z" },
+]
+
+[[package]]
 name = "pyarrow"
 version = "26.0.1"
 source = { registry = "https://pypi.org/simple" }
@@ -841,6 +850,39 @@ wheels = [
 ]
 
 [[package]]
+name = "vgi-mvt-worker"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "pmtiles" },
+    { name = "vgi-python", extra = ["http"] },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "mypy" },
+    { name = "pyarrow-stubs" },
+    { name = "pytest" },
+    { name = "ruff" },
+    { name = "vgi-python", extra = ["haybarn"] },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "pmtiles", specifier = ">=3.4" },
+    { name = "vgi-python", extras = ["http"], specifier = ">=0.50.0,<0.51" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "mypy", specifier = ">=1.18" },
+    { name = "pyarrow-stubs", specifier = ">=20.0" },
+    { name = "pytest", specifier = ">=8.4" },
+    { name = "ruff", specifier = ">=0.14" },
+    { name = "vgi-python", extras = ["haybarn"], specifier = ">=0.50.0,<0.51" },
+]
+
+[[package]]
 name = "vgi-python"
 version = "0.50.0"
 source = { registry = "https://pypi.org/simple" }
@@ -890,35 +932,6 @@ http = [
     { name = "pynacl", marker = "sys_platform == 'linux'" },
     { name = "waitress" },
     { name = "zstandard" },
-]
-
-[[package]]
-name = "vgi-starter-worker"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "vgi-python", extra = ["http"] },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "mypy" },
-    { name = "pyarrow-stubs" },
-    { name = "pytest" },
-    { name = "ruff" },
-    { name = "vgi-python", extra = ["haybarn"] },
-]
-
-[package.metadata]
-requires-dist = [{ name = "vgi-python", extras = ["http"], specifier = ">=0.50.0,<0.51" }]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "mypy", specifier = ">=1.18" },
-    { name = "pyarrow-stubs", specifier = ">=20.0" },
-    { name = "pytest", specifier = ">=8.4" },
-    { name = "ruff", specifier = ">=0.14" },
-    { name = "vgi-python", extras = ["haybarn"], specifier = ">=0.50.0,<0.51" },
 ]
 
 [[package]]

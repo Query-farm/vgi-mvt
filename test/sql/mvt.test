@@ -1,0 +1,244 @@
+# name: test/sql/mvt.test
+# description: SQL-level tests for the mvt worker, run through DuckDB by ci/run-integration.sh
+# group: [mvt]
+
+require vgi
+
+require-env MVT_WORKER
+
+require-env MVT_FIXTURES
+
+require-env MVT_TILE_SERVER
+
+statement ok
+ATTACH 'mvt' (TYPE vgi, LOCATION '{MVT_WORKER}');
+
+statement ok
+LOAD spatial;
+
+statement ok
+LOAD json;
+
+statement ok
+LOAD sqlite;
+
+# ---------------------------------------------------------------- tileset_metadata / tileset_layers
+
+query TT
+SELECT key, value FROM mvt.main.tileset_metadata('{MVT_FIXTURES}/sample.pmtiles')
+WHERE key IN ('format', 'minzoom', 'maxzoom', 'name') ORDER BY key;
+----
+format	pmtiles
+maxzoom	3
+minzoom	0
+name	vgi-mvt-sample
+
+query TT
+SELECT key, value FROM mvt.main.tileset_metadata('{MVT_FIXTURES}/sample.mbtiles')
+WHERE key IN ('format', 'minzoom', 'maxzoom') ORDER BY key;
+----
+format	mbtiles
+maxzoom	3
+minzoom	0
+
+query TTT
+SELECT layer, field, type FROM mvt.main.tileset_layers('{MVT_FIXTURES}/sample.mbtiles') ORDER BY layer, field;
+----
+cities	capital	Boolean
+cities	name	String
+cities	population	Number
+regions	area_rank	Number
+regions	code	String
+regions	label	String
+
+# ---------------------------------------------------------------- read_tiles: PMTiles, MBTiles agree
+
+query TII
+SELECT layer, count(*), count(DISTINCT geometry_type) FROM mvt.main.read_tiles('{MVT_FIXTURES}/sample.pmtiles', zoom := 2)
+GROUP BY layer ORDER BY layer;
+----
+cities	4	1
+regions	2	1
+
+# Default zoom is the tileset maxzoom (3); both containers hold the same features.
+query TII
+SELECT layer, count(*), max(z) FROM mvt.main.read_tiles('{MVT_FIXTURES}/sample.mbtiles') GROUP BY layer ORDER BY layer;
+----
+cities	4	3
+regions	2	3
+
+# MBTiles TMS rows are flipped to XYZ: the z2 tile over Europe is 2/2/1.
+query III
+SELECT DISTINCT z, x, y FROM mvt.main.read_tiles('{MVT_FIXTURES}/sample.mbtiles', zoom := 2);
+----
+2	2	1
+
+# layer := adds typed attribute columns from vector_layers.
+query TRT
+SELECT name, population, capital FROM mvt.main.read_tiles('{MVT_FIXTURES}/sample.pmtiles', layer := 'cities')
+ORDER BY population DESC;
+----
+Berlin	3645000.0	true
+Paris	2148000.0	true
+Vienna	1897000.0	true
+Milan	1352000.0	false
+
+# Properties JSON carries every attribute too.
+query TI
+SELECT properties->>'name', (properties->>'population')::INTEGER FROM mvt.main.read_tiles('{MVT_FIXTURES}/sample.mbtiles', zoom := 1, layer := 'cities')
+WHERE properties->>'name' = 'Milan';
+----
+Milan	1352000
+
+# Geometry round-trips to WGS84 within the zoom-3 tile grid (~0.011 degrees per pixel).
+query TTT
+SELECT name, abs(ST_X(geometry) - 13.405) < 0.01, abs(ST_Y(geometry) - 52.52) < 0.01
+FROM mvt.main.read_tiles('{MVT_FIXTURES}/sample.pmtiles', zoom := 3, layer := 'cities') WHERE name = 'Berlin';
+----
+Berlin	true	true
+
+# The square keeps its hole; the triangle has none.
+query TTI
+SELECT code, geometry_type, ST_NumInteriorRings(geometry) FROM mvt.main.read_tiles('{MVT_FIXTURES}/sample.pmtiles', layer := 'regions')
+ORDER BY code;
+----
+A	POLYGON	1
+B	POLYGON	0
+
+# The geometry column is a real GEOMETRY, tagged with its CRS.
+query T
+SELECT typeof(geometry) FROM mvt.main.read_tiles('{MVT_FIXTURES}/sample.pmtiles', zoom := 0) LIMIT 1;
+----
+GEOMETRY('OGC:CRS84')
+
+query T
+SELECT typeof(geometry) FROM mvt.main.read_tiles('{MVT_FIXTURES}/sample.pmtiles', zoom := 0, coordinates := 'web_mercator') LIMIT 1;
+----
+GEOMETRY('EPSG:3857')
+
+query T
+SELECT typeof(geometry) FROM mvt.main.mvt_decode((SELECT tile_data AS tile, 0 AS z, 0 AS x, 0 AS y FROM sqlite_scan('{MVT_FIXTURES}/sample.mbtiles', 'tiles') WHERE zoom_level = 0), coordinates := 'tile') LIMIT 1;
+----
+GEOMETRY
+
+# Web Mercator metres and raw tile pixels.
+query T
+SELECT abs(ST_X(geometry) - 1492232) < 2000 FROM mvt.main.read_tiles('{MVT_FIXTURES}/sample.pmtiles', zoom := 3, layer := 'cities', coordinates := 'web_mercator')
+WHERE name = 'Berlin';
+----
+true
+
+query T
+SELECT ST_X(geometry) BETWEEN 0 AND 4096 FROM mvt.main.read_tiles('{MVT_FIXTURES}/sample.pmtiles', zoom := 3, layer := 'cities', coordinates := 'tile')
+WHERE name = 'Berlin';
+----
+true
+
+# A bbox limits which tiles are read: none of the fixture's tiles cover the Pacific.
+query I
+SELECT count(*) FROM mvt.main.read_tiles('{MVT_FIXTURES}/sample.pmtiles', zoom := 3, west := -170, south := -10, east := -160, north := 0);
+----
+0
+
+query I
+SELECT count(*) FROM mvt.main.read_tiles('{MVT_FIXTURES}/sample.mbtiles', zoom := 3, west := 0, south := 40, east := 30, north := 55);
+----
+6
+
+# ---------------------------------------------------------------- remote sources (offline HTTP server)
+
+query TI
+SELECT layer, count(*) FROM mvt.main.read_tiles('{MVT_TILE_SERVER}/sample.pmtiles', zoom := 3) GROUP BY layer ORDER BY layer;
+----
+cities	4
+regions	2
+
+query TI
+SELECT layer, count(*) FROM mvt.main.read_tiles('{MVT_TILE_SERVER}/xyz/{z}/{x}/{y}.mvt', zoom := 2, west := -180, south := -85, east := 180, north := 85)
+GROUP BY layer ORDER BY layer;
+----
+cities	4
+regions	2
+
+query TI
+SELECT geometry_type, count(*) FROM mvt.main.read_mvt('{MVT_TILE_SERVER}/0-0-0.mvt', 0, 0, 0) GROUP BY ALL ORDER BY ALL;
+----
+POINT	4
+POLYGON	2
+
+# ---------------------------------------------------------------- read_mvt
+
+query TI
+SELECT geometry_type, count(*) FROM mvt.main.read_mvt('{MVT_FIXTURES}/0-0-0.mvt', 0, 0, 0) GROUP BY ALL ORDER BY ALL;
+----
+POINT	4
+POLYGON	2
+
+# Typed columns are inferred from the tile itself.
+query TT
+SELECT name, typeof(population) FROM mvt.main.read_mvt('{MVT_FIXTURES}/0-0-0.mvt', 0, 0, 0, layer := 'cities') ORDER BY population DESC LIMIT 1;
+----
+Berlin	BIGINT
+
+statement error
+SELECT * FROM mvt.main.read_mvt('{MVT_FIXTURES}/0-0-0.mvt', 1, 5, 0);
+----
+<REGEX>:.*does not exist.*
+
+# ---------------------------------------------------------------- mvt_decode
+
+# Decode MBTiles blobs read by DuckDB's sqlite extension (the caller flips the TMS row).
+
+query TI
+SELECT layer, count(*) FROM mvt.main.mvt_decode((
+  SELECT tile_data AS tile, zoom_level AS z, tile_column AS x, (1 << zoom_level) - 1 - tile_row AS y
+  FROM sqlite_scan('{MVT_FIXTURES}/sample.mbtiles', 'tiles') WHERE zoom_level = 2))
+GROUP BY layer ORDER BY layer;
+----
+cities	4
+regions	2
+
+# A hand-made tile: one point at the centre of tile 0/0/0, which is lon/lat (0, 0).
+query TITT
+SELECT layer, feature_id, ST_AsText(geometry), properties->>'name' FROM mvt.main.mvt_decode((
+  SELECT from_hex('1a2e78020a06706f696e7473120f0807120200001801220509802080201a046e616d6522080a066f726967696e288020') AS tile,
+         0 AS z, 0 AS x, 0 AS y));
+----
+points	7	POINT (0 0)	origin
+
+query I
+SELECT count(*) FROM mvt.main.mvt_decode((SELECT NULL::BLOB AS tile, 0 AS z, 0 AS x, 0 AS y));
+----
+0
+
+statement error
+SELECT * FROM mvt.main.mvt_decode((SELECT 'x'::BLOB AS blob_col, 0 AS z, 0 AS x, 0 AS y));
+----
+<REGEX>:.*tile.*
+
+# ---------------------------------------------------------------- errors
+
+statement error
+SELECT * FROM mvt.main.read_tiles('{MVT_FIXTURES}/sample.pmtiles', layer := 'nope');
+----
+<REGEX>:.*not in this tileset.*cities, regions.*
+
+statement error
+SELECT * FROM mvt.main.read_tiles('{MVT_FIXTURES}/sample.pmtiles', west := 0, south := 0);
+----
+<REGEX>:.*all four.*
+
+statement error
+SELECT * FROM mvt.main.read_tiles('{MVT_FIXTURES}/sample.pmtiles', zoom := 3, west := -180, south := -85, east := 180, north := 85, max_tiles := 1);
+----
+<REGEX>:.*more than 1 tiles.*
+
+statement error
+SELECT * FROM mvt.main.read_tiles('{MVT_FIXTURES}/does-not-exist.pmtiles');
+----
+<REGEX>:.*cannot open.*
+
+statement error
+SELECT * FROM mvt.main.read_tiles('{MVT_FIXTURES}/sample.pmtiles', coordinates := 'lambert');
+----
+<REGEX>:.*
