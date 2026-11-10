@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import threading
+import uuid
 from collections import OrderedDict
 from dataclasses import dataclass
 from typing import Annotated, Any, cast
@@ -27,6 +28,7 @@ from vgi.table_function import (
 )
 from vgi_rpc import ArrowSerializableDataclass
 
+from .edges import TILE_EDGE_CHOICES, EdgeAssembler, TileEdges
 from .meta import FIRENZE_PMTILES, STREETS_TILE, ZCTA_PMTILES, object_tags
 from .mvt import COORDINATE_CHOICES, Coordinates, decode_tile
 from .pushdown import INTERSECTS_EXTENT, clamp_to_world, intersect, pushed_bbox
@@ -40,6 +42,13 @@ DEFAULT_MAX_TILES = 10_000
 _COORDS_DOC = (
     "Output coordinate system: 'wgs84' (longitude/latitude degrees, the default), 'web_mercator' "
     "(EPSG:3857 metres) or 'tile' (raw tile pixels, 0..extent from the tile's top-left corner)."
+)
+TILE_EDGES_DOC = (
+    "How features that reach a tile edge come back: 'merge' (the default: one row per feature; points "
+    "only in the tile that owns them, lines and polygons clipped to their tile and the pieces sharing a "
+    "feature id joined into one geometry), 'clip' (clipped to each tile, not joined: pieces never "
+    "overlap) or 'raw' (exactly as stored in the tiles, including the buffer each tile repeats from "
+    "its neighbours)."
 )
 _LAYER_DOC = (
     "Read only this layer. Also adds one typed column per attribute of the layer (from the tileset's "
@@ -106,13 +115,43 @@ class ReadTilesArgs:
             le=10_000_000,
         ),
     ]
+    tile_edges: Annotated[str, Arg("tile_edges", default="merge", doc=TILE_EDGES_DOC, choices=list(TILE_EDGE_CHOICES))]
 
 
 @dataclass(kw_only=True)
 class TileCursor(ArrowSerializableDataclass):
-    """Index of the next tile to read in the (deterministic) tile list."""
+    """Index of the next tile to read in the (deterministic) tile list, and the read it belongs to."""
 
     next_tile: int = 0
+    run: str = ""
+
+
+_ASSEMBLERS: OrderedDict[str, EdgeAssembler] = OrderedDict()
+_ASSEMBLERS_LOCK = threading.Lock()
+
+
+def _assembler(run: str, args: ReadTilesArgs, keys: list[TileKey]) -> EdgeAssembler:
+    """Return the edge state of one read (one per query, kept while its batches are served)."""
+    with _ASSEMBLERS_LOCK:
+        hit = _ASSEMBLERS.get(run)
+        if hit is None:
+            hit = EdgeAssembler(
+                open_source(args.source),
+                keys,
+                layer_filter=args.layer,
+                coordinates=cast("Coordinates", args.coordinates),
+                mode=cast("TileEdges", args.tile_edges),
+            )
+            _ASSEMBLERS[run] = hit
+            while len(_ASSEMBLERS) > 16:
+                _ASSEMBLERS.popitem(last=False)
+        _ASSEMBLERS.move_to_end(run)
+        return hit
+
+
+# A pushed box edge can lie exactly on a tile boundary; widen it a hair so the tile beyond is read too
+# and a feature crossing the box edge is not cut there (ST_Within / ST_Contains would then be wrong).
+_HINT_MARGIN = 1e-9
 
 
 _TILE_LISTS: OrderedDict[tuple[object, ...], list[TileKey]] = OrderedDict()
@@ -187,17 +226,22 @@ class ReadTiles(TableFunctionGenerator[ReadTilesArgs, TileCursor]):
                     "`WHERE ST_Intersects(geometry, <geometry>)` (or ST_Within/ST_Contains/...) also narrows "
                     "the tiles read, so it can replace the bbox arguments. Columns: layer, "
                     "z, x, y, feature_id, geometry_type, geometry (GEOMETRY), properties (JSON) and, with "
-                    "`layer`, one typed column per layer attribute. Features crossing tile edges appear once per tile, "
-                    "clipped with a small buffer: group by feature_id and ST_Union_Agg to merge them. Use "
+                    "`layer`, one typed column per layer attribute. `tile_edges` ('merge' default, 'clip', "
+                    "'raw') controls features that cross tile edges: 'merge' returns one row per feature, "
+                    "joining the per-tile pieces that share a feature_id (features without an id may come "
+                    "back as several non-overlapping pieces); 'raw' returns each tile's copy, buffer "
+                    "included. A feature extending past the tiles read is cut at their edge. Use "
                     "`tileset_layers` first to discover layer and attribute names."
                 ),
                 doc_md=(
                     "## read_tiles(source, zoom := maxzoom, layer := NULL, west/south/east/north := NULL, "
-                    "coordinates := 'wgs84', max_tiles := 10000)\n\n"
+                    "coordinates := 'wgs84', max_tiles := 10000, tile_edges := 'merge')\n\n"
                     "One row per vector-tile feature, with a `GEOMETRY` column and a JSON `properties` "
                     "column. Sources: PMTiles (file or URL), MBTiles (file) or an `{z}/{x}/{y}` URL "
                     "template.\n\n"
-                    "Pass `layer` to also get each attribute of that layer as its own typed column."
+                    "Pass `layer` to also get each attribute of that layer as its own typed column. "
+                    "Features crossing tile edges come back once (`tile_edges := 'merge'`); use "
+                    "`'raw'` for each tile's stored copy."
                 ),
             ),
             "vgi.result_dynamic_columns_md": dynamic_columns_md(
@@ -272,7 +316,7 @@ class ReadTiles(TableFunctionGenerator[ReadTilesArgs, TileCursor]):
     @classmethod
     def initial_state(cls, params: ProcessParams[ReadTilesArgs]) -> TileCursor:
         """Start at the first tile."""
-        return TileCursor()
+        return TileCursor(run=uuid.uuid4().hex)
 
     @classmethod
     def process(cls, params: ProcessParams[ReadTilesArgs], state: TileCursor, out: OutputCollector) -> None:
@@ -283,14 +327,22 @@ class ReadTiles(TableFunctionGenerator[ReadTilesArgs, TileCursor]):
             out.finish()
             return
         try:
-            keys = _tile_list(args, hint if isinstance(hint, tuple) else None)
+            box = None
+            if isinstance(hint, tuple):
+                m = _HINT_MARGIN
+                box = (hint[0] - m, hint[1] - m, hint[2] + m, hint[3] + m)
+            keys = _tile_list(args, box)
             source = open_source(args.source)
             rows = RowBuilder(params.output_schema, cast("Coordinates", args.coordinates), args.layer)
+            if not state.run:
+                state.run = uuid.uuid4().hex
+            edges = _assembler(state.run, args, keys)
             while state.next_tile < len(keys) and len(rows) < BATCH_ROWS:
                 chunk = keys[state.next_tile : state.next_tile + TILES_PER_FETCH]
                 state.next_tile += len(chunk)
-                for (z, x, y), data in source.fetch(chunk):
-                    rows.add_tile(z, x, y, data)
+                with edges.lock:
+                    for key, data in source.fetch(chunk):
+                        edges.add_tile(rows, key, data)
         except TileSourceError as exc:
             raise ValueError(str(exc)) from exc
         if len(rows):

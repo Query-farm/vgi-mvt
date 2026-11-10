@@ -196,20 +196,33 @@ class RowBuilder:
     def add_layer(self, z: int, x: int, y: int, layer: Layer) -> None:
         """Append the features of one decoded layer."""
         project = Projector(z, x, y, layer.extent, self.coordinates)
-        c = self.cols
         for feature in layer.features:
             gtype, wkb = feature_wkb(feature, project, layer.version)
-            c["layer"].append(layer.name)
-            c["z"].append(z)
-            c["x"].append(x)
-            c["y"].append(y)
-            c["feature_id"].append(feature.id)
-            c["geometry_type"].append(gtype)
-            c["geometry"].append(wkb)
-            props = feature.properties
-            c["properties"].append(json.dumps({k: _json_safe(v) for k, v in props.items()}, ensure_ascii=False))
-            for f in self.extra:
-                c[f.name].append(_convert(props.get(f.name), f.type))
+            self.append(layer.name, z, x, y, feature.id, gtype, wkb, feature.properties)
+
+    def append(
+        self,
+        layer: str,
+        z: int,
+        x: int,
+        y: int,
+        feature_id: int | None,
+        geometry_type: str,
+        wkb: bytes | None,
+        props: dict[str, PropertyValue | None],
+    ) -> None:
+        """Append one row."""
+        c = self.cols
+        c["layer"].append(layer)
+        c["z"].append(z)
+        c["x"].append(x)
+        c["y"].append(y)
+        c["feature_id"].append(feature_id)
+        c["geometry_type"].append(geometry_type)
+        c["geometry"].append(wkb)
+        c["properties"].append(json.dumps({k: _json_safe(v) for k, v in props.items()}, ensure_ascii=False))
+        for f in self.extra:
+            c[f.name].append(_convert(props.get(f.name), f.type))
 
     def take(self) -> pa.RecordBatch:
         """Return the accumulated rows as a batch and reset."""

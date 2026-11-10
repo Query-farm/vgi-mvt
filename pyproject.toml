@@ -14,6 +14,8 @@ dependencies = [
     "vgi-python[http,haybarn]>=0.50.0,<0.51",
     # PMTiles v3 header/directory codec (pure Python, BSD-3-Clause).
     "pmtiles>=3.4",
+    # GEOS clipping and union to join a feature's pieces across tile edges (BSD-3-Clause).
+    "shapely>=2.0",
 ]
 
 [project.scripts]
@@ -60,7 +62,7 @@ module = ["vgi.*", "vgi_rpc.*"]
 follow_untyped_imports = true
 
 [[tool.mypy.overrides]]
-module = ["pmtiles.*"]
+module = ["pmtiles.*", "shapely.*"]
 ignore_missing_imports = true
 
 [tool.pydoclint]

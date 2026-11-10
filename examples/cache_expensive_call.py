@@ -64,7 +64,7 @@ class ExchangeRates(TableFunctionGenerator[NoArgs, None]):
             return
         # Cache metadata must ride on the FIRST batch.
         vgi_out.emit(
-            pa.RecordBatch.from_pydict(ROWS, schema=cls.FIXED_SCHEMA),
+            pa.RecordBatch.from_pydict(cast("dict[str, list[Any]]", ROWS), schema=cls.FIXED_SCHEMA),
             cache_control=CacheControl(
                 ttl=300, etag=DATA_VERSION, revalidatable=True, stale_while_revalidate=60, stale_if_error=600
             ),

@@ -29,6 +29,7 @@ src/mvt_worker/
   decode.py        # mvt_decode (table in-out)
   layers.py        # tileset_layers, tileset_metadata
   pushdown.py      # pushed `geometry && <constant>` hint -> bbox for tile selection
+  edges.py         # tile_edges: owned points, clip to tile, join pieces across tiles (shapely)
   catalog.py       # ATTACH ... tileset '...': one table per layer (catalog hooks see only
                    #   attach_opaque_data, so the tileset settings are encoded there)
   worker.py        # assembles the catalog; add new functions to FUNCTIONS
@@ -44,8 +45,9 @@ vgi-agent-tests.yaml  # private graders for the agent test tasks
 ```
 
 Correctness oracle: GDAL's MVT/PMTiles/MBTiles readers (`ST_Read(..., open_options=
-['ZOOM_LEVEL=14','CLIP=NO'])`). Feature counts, vertex counts, areas and lengths should
-match it exactly for MVT v2 tiles.
+['ZOOM_LEVEL=14','CLIP=NO'])`). With `tile_edges := 'raw'`, feature counts, vertex counts,
+areas and lengths should match it exactly for MVT v2 tiles. For the default `'merge'`, check
+that rows equal distinct `feature_id`s and that the area and length sums equal `'clip'`'s.
 
 ## Recipe: add a function
 
@@ -168,5 +170,5 @@ in the vgi-python docs.
 ## Useful prompts
 
 - "Add Brotli/Zstandard PMTiles internal compression support with fixtures."
-- "Add an option to clip features to their tile bounds (drop the buffer)."
+- "Add `tile_edges := 'clip'` to `mvt_decode` (it sees one tile at a time, so it can't join)."
 - "Add a `COPY ... TO` function that encodes rows back into an MBTiles/PMTiles tileset."

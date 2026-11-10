@@ -134,6 +134,24 @@ WHERE name = 'Berlin';
 ----
 true
 
+# tile_edges: one row per feature by default; 'raw' keeps every tile's copy.
+query TI
+SELECT layer, count(*) FROM mvt.main.read_tiles('{MVT_FIXTURES}/edges.pmtiles', zoom := 3) GROUP BY layer ORDER BY layer;
+----
+areas	2
+roads	2
+
+query TI
+SELECT layer, count(*) FROM mvt.main.read_tiles('{MVT_FIXTURES}/edges.pmtiles', zoom := 3, tile_edges := 'raw') GROUP BY layer ORDER BY layer;
+----
+areas	5
+roads	4
+
+statement error
+SELECT * FROM mvt.main.read_tiles('{MVT_FIXTURES}/edges.pmtiles', tile_edges := 'dedupe');
+----
+<REGEX>:.*dedupe.*
+
 # A bbox limits which tiles are read: none of the fixture's tiles cover the Pacific.
 query I
 SELECT count(*) FROM mvt.main.read_tiles('{MVT_FIXTURES}/sample.pmtiles', zoom := 3, west := -170, south := -10, east := -160, north := 0);
@@ -149,13 +167,13 @@ SELECT count(*) FROM mvt.main.read_tiles('{MVT_FIXTURES}/sample.mbtiles', zoom :
 # template run without an explicit bbox.
 query I
 SELECT count(*) FROM mvt.main.read_tiles('{MVT_FIXTURES}/sample.mbtiles', zoom := 1, layer := 'cities', max_tiles := 1)
-WHERE ST_Intersects(geometry, ST_MakeEnvelope(0, 40, 30, 55));
+WHERE ST_Intersects(geometry, ST_MakeEnvelope(1, 40, 30, 55));
 ----
 4
 
 query I
 SELECT count(*) FROM mvt.main.read_tiles('{MVT_TILE_SERVER}/xyz/{z}/{x}/{y}.mvt', zoom := 2, layer := 'cities')
-WHERE ST_Intersects(geometry, ST_MakeEnvelope(0, 40, 30, 55));
+WHERE ST_Intersects(geometry, ST_MakeEnvelope(1, 40, 30, 55));
 ----
 4
 

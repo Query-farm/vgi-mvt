@@ -126,6 +126,15 @@ class MvtWorker(Worker):
             int,
             AttachOption(desc="A layer table scan fails rather than read more than this many tiles."),
         ] = DEFAULT_MAX_TILES
+        tile_edges: Annotated[
+            str,
+            AttachOption(
+                desc=(
+                    "Features reaching a tile edge: 'merge' (default, one row per feature), 'clip' (one "
+                    "non-overlapping piece per tile) or 'raw' (as stored, tile buffers included)."
+                )
+            ),
+        ] = "merge"
 
 
 def main() -> None:

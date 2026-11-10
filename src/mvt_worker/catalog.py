@@ -39,6 +39,7 @@ from vgi.catalog import (
     TransactionOpaqueData,
 )
 
+from .edges import TILE_EDGE_CHOICES
 from .mvt import COORDINATE_CHOICES
 from .read_tiles import DEFAULT_MAX_TILES
 from .rows import attribute_fields, output_schema
@@ -62,6 +63,7 @@ class TilesetAttach:
     coordinates: str
     bbox: BBox | None
     max_tiles: int
+    tile_edges: str = "merge"
 
 
 def parse_bbox(raw: str) -> BBox | None:
@@ -97,12 +99,16 @@ def tileset_attach(options: Mapping[str, Any]) -> TilesetAttach | None:
     max_tiles = int(options.get("max_tiles") or DEFAULT_MAX_TILES)
     if max_tiles < 1:
         raise ValueError(f"max_tiles must be at least 1, got {max_tiles}")
+    tile_edges = str(options.get("tile_edges") or "merge")
+    if tile_edges not in TILE_EDGE_CHOICES:
+        raise ValueError(f"tile_edges must be one of {', '.join(TILE_EDGE_CHOICES)}, got {tile_edges!r}")
     return TilesetAttach(
         source=source,
         zoom=zoom,
         coordinates=coordinates,
         bbox=parse_bbox(str(options.get("bbox") or "")),
         max_tiles=max_tiles,
+        tile_edges=tile_edges,
     )
 
 
@@ -148,7 +154,7 @@ class TilesetCatalog(ReadOnlyCatalogInterface):
 
     def loggable_attach_options(self, options: Mapping[str, Any]) -> Mapping[str, Any]:
         """Log the tileset settings (no credentials are accepted at attach)."""
-        keys = ("tileset", "zoom", "coordinates", "bbox", "max_tiles")
+        keys = ("tileset", "zoom", "coordinates", "bbox", "max_tiles", "tile_edges")
         return {k: options[k] for k in keys if k in options}
 
     def catalog_attach(
@@ -199,6 +205,7 @@ class TilesetCatalog(ReadOnlyCatalogInterface):
             "coordinates": attach.coordinates,
             "bbox": list(attach.bbox) if attach.bbox else None,
             "max_tiles": attach.max_tiles,
+            "tile_edges": attach.tile_edges,
         }
         return AttachOpaqueData(_ATTACH_PREFIX + json.dumps(payload, separators=(",", ":")).encode())
 
@@ -215,6 +222,7 @@ class TilesetCatalog(ReadOnlyCatalogInterface):
             coordinates=str(d.get("coordinates") or "wgs84"),
             bbox=(float(bbox[0]), float(bbox[1]), float(bbox[2]), float(bbox[3])) if bbox else None,
             max_tiles=int(d.get("max_tiles") or DEFAULT_MAX_TILES),
+            tile_edges=str(d.get("tile_edges") or "merge"),
         )
 
     @staticmethod
@@ -337,6 +345,7 @@ class TilesetCatalog(ReadOnlyCatalogInterface):
             "layer": pa.scalar(info.tags["mvt.layer"]),
             "coordinates": pa.scalar(attach.coordinates),
             "max_tiles": pa.scalar(attach.max_tiles, pa.int64()),
+            "tile_edges": pa.scalar(attach.tile_edges),
         }
         if attach.zoom is not None:
             named["zoom"] = pa.scalar(attach.zoom, pa.int64())

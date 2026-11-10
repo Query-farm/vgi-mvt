@@ -12,7 +12,7 @@ equals the input schema, so it works on any table that has a ``value`` column.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Annotated
+from typing import Annotated, cast
 
 import pyarrow as pa
 import pyarrow.compute as pc
@@ -55,7 +55,7 @@ class PositiveOnly(TableInOutGenerator[PositiveOnlyArgs]):
         """Filter each incoming batch and emit the survivors."""
         value = batch.column("value")
         keep = pc.fill_null(pc.greater(value, pa.scalar(0, type=value.type)), pa.scalar(False))  # NULL -> drop
-        out.emit(batch.filter(keep))
+        out.emit(batch.filter(cast("pa.BooleanArray", keep)))
 
 
 class RecipeWorker(Worker):

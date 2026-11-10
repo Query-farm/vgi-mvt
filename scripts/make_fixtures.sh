@@ -22,4 +22,15 @@ mv tiles0/0/0/0.mvt 0-0-0.mvt
 ogr2ogr -f MVT xyz "$VRT" -dsco MINZOOM=0 -dsco MAXZOOM=2 -dsco COMPRESS=YES -dsco TILE_EXTENSION=mvt -dsco "CONF=$CONF"
 rm -f xyz/metadata.json
 rm -rf tiles0 "$VRT"
-ls -la sample.mbtiles sample.pmtiles 0-0-0.mvt
+# Features that cross tile edges (no feature ids, as GDAL writes them), for tile_edges.
+rm -f edges.pmtiles
+cat > "$VRT" <<VRTEOF
+<OGRVRTDataSource>
+  <OGRVRTLayer name="roads"><SrcDataSource>$(pwd)/src/edges_roads.geojson</SrcDataSource><SrcLayer>edges_roads</SrcLayer></OGRVRTLayer>
+  <OGRVRTLayer name="areas"><SrcDataSource>$(pwd)/src/edges_areas.geojson</SrcDataSource><SrcLayer>edges_areas</SrcLayer></OGRVRTLayer>
+</OGRVRTDataSource>
+VRTEOF
+ogr2ogr -f PMTiles edges.pmtiles "$VRT" -dsco MINZOOM=0 -dsco MAXZOOM=3 -dsco NAME=vgi-mvt-edges \
+  -dsco 'CONF={"roads":{"target_name":"roads"},"areas":{"target_name":"areas"}}'
+rm -f "$VRT"
+ls -la sample.mbtiles sample.pmtiles edges.pmtiles 0-0-0.mvt

@@ -37,6 +37,7 @@ SELECT name, geometry FROM florence.pois WHERE "pmap:kind" = 'cafe';
 | `bbox` | whole tileset | `'west,south,east,north'` in degrees: every table reads only the tiles covering it. Needed for planet-scale archives. |
 | `coordinates` | `'wgs84'` | `'web_mercator'` or `'tile'` instead. |
 | `max_tiles` | 10000 | A table scan fails rather than read more tiles than this. |
+| `tile_edges` | `'merge'` | `'merge'`: one row per feature. `'clip'`: one non-overlapping piece per tile. `'raw'`: each tile's copy as stored, buffer included. |
 
 **Spatial filters choose the tiles.** For `WHERE ST_Intersects(geometry, <constant>)`, and
 likewise `ST_Contains`, `ST_Within`, `ST_Covers`, `ST_CoveredBy`, `ST_Overlaps`, `ST_Touches`,
@@ -72,7 +73,7 @@ ORDER BY population DESC;
 
 | Function | Reads |
 |---|---|
-| `read_tiles(source, zoom :=, layer :=, west/south/east/north :=, coordinates :=, max_tiles :=)` | a whole tileset at one zoom: **PMTiles** (file or `https://` URL, via range requests), **MBTiles** (file), or a `{z}/{x}/{y}` **tile-server URL template** |
+| `read_tiles(source, zoom :=, layer :=, west/south/east/north :=, coordinates :=, max_tiles :=, tile_edges :=)` | a whole tileset at one zoom: **PMTiles** (file or `https://` URL, via range requests), **MBTiles** (file), or a `{z}/{x}/{y}` **tile-server URL template** |
 | `read_mvt(source, z, x, y, layer :=, coordinates :=)` | one `.mvt` / `.pbf` tile (file or URL, gzip detected) |
 | `mvt_decode((SELECT tile, z, x, y FROM …), layer :=, coordinates :=)` | tile blobs already in DuckDB, for example MBTiles rows read with `sqlite_scan` |
 | `tileset_layers(source)` | the layers and typed attributes a tileset declares (`vector_layers`) |
@@ -91,11 +92,23 @@ already lost some detail:
   tile. Decoding inverts the projection exactly, so the error is the grid cell: about 1 m at
   z14 and about 0.6 km at z4. Read the highest zoom (the default) for the most faithful
   geometry.
-- **Features are clipped per tile.** A road or polygon that crosses tiles comes back once per
-  tile, clipped with a small buffer. Merge the pieces with
-  `GROUP BY feature_id` and `ST_Union_Agg(geometry)` (when the tileset sets ids), or clip the
-  pieces to their tile with `ST_Intersection(geometry, ST_TileEnvelope(z, x, y))` (in Web
-  Mercator) before you sum areas or lengths.
+- **Tiles split features, and the tileset readers join them back.** A tileset stores a
+  feature once per tile it touches, plus a buffer copy in each neighbour. `read_tiles` and the
+  attached tables undo that by default (`tile_edges := 'merge'`):
+  - A point is kept only in the tile that owns it.
+  - Lines and polygons are clipped to their tile, and the pieces that belong together are
+    joined into one geometry (with GEOS, via shapely).
+  - Pieces belong together when they share a layer, a `feature_id` and their properties. When
+    the tileset has no ids, they must also meet at the shared tile edge.
+
+  `count(*)`, `sum(ST_Area(...))` and `sum(ST_Length(...))` are then right without extra
+  work. On the Protomaps Florence sample, 4,092 road rows became 3,557 rows for 3,557 ids. On
+  Overture POIs, 8,029 rows became 7,211. A feature can still come back as more than one row
+  when it has no id and its pieces don't meet (an island of a multipolygon in another tile).
+  A feature is cut at the edge of the tiles read, so its geometry covers the area you read,
+  not necessarily all of it. `'clip'` skips the joining (non-overlapping pieces, faster), and
+  `'raw'` returns exactly what the tiles store. `read_mvt` and `mvt_decode` decode one tile at
+  a time and always return it as stored.
 - **Low zooms are simplified and filtered.** Generators such as tippecanoe and planetiler
   drop small features and vertices at low zoom.
 - **Attributes are exact.** Strings, numbers and booleans decode to what the encoder wrote.
@@ -229,8 +242,9 @@ make check          # everything CI runs
 ```
 
 The worker depends on `vgi-python` (with its `haybarn` extra: an embedded engine, about 43 MB,
-that the SDK uses to apply the filters DuckDB pushes into `read_tiles`) and `pmtiles` (for the
-PMTiles header codec and Hilbert tile IDs). The MVT decoder is pure Python. It decodes the
+that the SDK uses to apply the filters DuckDB pushes into `read_tiles`), `pmtiles` (for the
+PMTiles header codec and Hilbert tile IDs) and `shapely` (GEOS clipping and union for
+`tile_edges`). The MVT decoder is pure Python. It decodes the
 2,759-feature Mapbox Streets sample tile in about 25 ms.
 
 `stdout` carries the Arrow protocol, so log to stderr (`logging`; `--debug` turns it up).

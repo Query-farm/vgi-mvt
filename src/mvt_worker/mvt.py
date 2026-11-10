@@ -16,7 +16,7 @@ import gzip
 import math
 import struct
 import zlib
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from typing import Literal
 
@@ -384,15 +384,20 @@ def _wkb_polygon(rings: list[list[float]]) -> bytes:
     return struct.pack("<BII", 1, 3, len(rings)) + b"".join(_wkb_coords(r) for r in rings)
 
 
-def feature_wkb(feature: Feature, project: Projector, version: int = 2) -> tuple[str, bytes | None]:
+def feature_wkb(feature: Feature, project: Callable[[Ring], list[float]], version: int = 2) -> tuple[str, bytes | None]:
     """Return ``(geometry_type, wkb)`` for a feature; wkb is None for empty/unknown geometry.
 
     The type is the OGC type actually written: POINT, MULTIPOINT, LINESTRING,
     MULTILINESTRING, POLYGON or MULTIPOLYGON. ``version`` is the layer's MVT
     version: 2 classifies polygon rings by winding (the spec), 1 by nesting.
     """
-    parts = decode_geometry(feature.geometry)
-    gtype = feature.geom_type
+    return parts_wkb(feature.geom_type, decode_geometry(feature.geometry), project, version)
+
+
+def parts_wkb(
+    gtype: int, parts: list[Ring], project: Callable[[Ring], list[float]], version: int = 2
+) -> tuple[str, bytes | None]:
+    """Like :func:`feature_wkb`, from already decoded parts (see :func:`decode_geometry`)."""
     if gtype == 1:
         points = [pt for part in parts for pt in part]
         if not points:

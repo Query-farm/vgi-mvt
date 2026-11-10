@@ -82,9 +82,9 @@ CATALOG_DOC_LLM = (
     "and tile blobs already in a DuckDB query. Attaching with a `tileset` option exposes each layer "
     "of that tileset as a table with typed attribute columns, scoped by the `zoom` and `bbox` attach "
     "options. Read the tileset metadata first to learn its zoom "
-    "range, layers and attributes. Geometry is quantised to the tile grid and clipped at tile edges "
-    "(with a buffer), so a feature crossing tiles comes back once per tile: merge with "
-    "`GROUP BY feature_id` and `ST_Union_Agg`, or read a lower zoom."
+    "range, layers and attributes. Geometry is quantised to the tile grid. Tilesets store a feature "
+    "once per tile it touches; the tileset readers join those pieces back into one row per feature "
+    "by default (`tile_edges`), while the single-tile decoders return each tile as stored."
 )
 
 CATALOG_DOC_MD = (

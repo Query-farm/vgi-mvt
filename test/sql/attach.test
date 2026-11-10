@@ -72,12 +72,12 @@ DETACH sample;
 statement ok
 ATTACH 'mvt' AS mb (TYPE vgi, LOCATION '{MVT_WORKER}', tileset '{MVT_FIXTURES}/sample.mbtiles', zoom 1, coordinates 'web_mercator');
 
-# Known behaviour: at zoom 1 the fixture spans two tiles and Paris (2.35 E) also sits in the
-# western tile's buffer, so it comes back twice. Rows are per tile, not per feature.
+# At zoom 1 the fixture spans two tiles and Paris (2.35 E) also sits in the western tile's
+# buffer. Each point is kept only in the tile that owns it, so it comes back once.
 query III
 SELECT count(*), count(DISTINCT name), max(z) FROM mb.cities;
 ----
-5	4	1
+4	4	1
 
 query T
 SELECT typeof(geometry) FROM mb.regions LIMIT 1;
@@ -86,6 +86,80 @@ GEOMETRY('EPSG:3857')
 
 statement ok
 DETACH mb;
+
+# tile_edges 'raw' returns exactly what the tiles store, buffer copies included.
+statement ok
+ATTACH 'mvt' AS mbraw (TYPE vgi, LOCATION '{MVT_WORKER}', tileset '{MVT_FIXTURES}/sample.mbtiles', zoom 1, tile_edges 'raw');
+
+query II
+SELECT count(*), count(DISTINCT name) FROM mbraw.cities;
+----
+5	4
+
+statement ok
+DETACH mbraw;
+
+# ---------------------------------------------------------------- features crossing tile edges
+
+# edges.pmtiles: a line and a 20x12 degree rectangle that cross tile edges, plus one small
+# feature of each kind; GDAL wrote no feature ids, so pieces join where they meet.
+statement ok
+ATTACH 'mvt' AS edges (TYPE vgi, LOCATION '{MVT_WORKER}', tileset '{MVT_FIXTURES}/edges.pmtiles');
+
+query TTI
+SELECT name, geometry_type, round(ST_Area(geometry)) FROM edges.areas ORDER BY name;
+----
+Four tiles	POLYGON	240
+One tile	POLYGON	25
+
+query TTI
+SELECT name, geometry_type, round(ST_Length(geometry)) FROM edges.roads ORDER BY name;
+----
+Diagonal	LINESTRING	45
+Short	LINESTRING	3
+
+statement ok
+ATTACH 'mvt' AS edgesclip (TYPE vgi, LOCATION '{MVT_WORKER}', tileset '{MVT_FIXTURES}/edges.pmtiles', tile_edges 'clip');
+
+# Clipped pieces never overlap: they add up to the same area.
+query II
+SELECT count(*), round(sum(ST_Area(geometry))) FROM edgesclip.areas WHERE name = 'Four tiles';
+----
+4	240
+
+statement ok
+ATTACH 'mvt' AS edgesraw (TYPE vgi, LOCATION '{MVT_WORKER}', tileset '{MVT_FIXTURES}/edges.pmtiles', tile_edges 'raw');
+
+query I
+SELECT count(*) FROM edgesraw.areas WHERE name = 'Four tiles';
+----
+4
+
+query I
+SELECT round(sum(ST_Area(geometry))) > 240 FROM edgesraw.areas WHERE name = 'Four tiles';
+----
+true
+
+# A pushed box narrows the tiles read; the feature is cut at the edge of the tiles read, so it
+# still crosses the box edge and ST_Within stays exact.
+query I
+SELECT count(*) FROM edges.areas WHERE ST_Within(geometry, ST_MakeEnvelope(-20, 30, 0, 60));
+----
+0
+
+query I
+SELECT count(*) FROM edges.areas WHERE ST_Intersects(geometry, ST_MakeEnvelope(-20, 30, 0, 60));
+----
+1
+
+statement ok
+DETACH edges;
+
+statement ok
+DETACH edgesclip;
+
+statement ok
+DETACH edgesraw;
 
 # ---------------------------------------------------------------- bbox scopes every table
 
@@ -119,7 +193,7 @@ SELECT count(*) FROM tiny.cities;
 # WHERE ST_Intersects(...) pushes a bounding-box hint into the scan: this table may read only
 # one tile, and a box over the eastern tile succeeds where the whole table is refused (above).
 query T
-SELECT name FROM tiny.cities WHERE ST_Intersects(geometry, ST_MakeEnvelope(0, 40, 30, 55)) ORDER BY name;
+SELECT name FROM tiny.cities WHERE ST_Intersects(geometry, ST_MakeEnvelope(1, 40, 30, 55)) ORDER BY name;
 ----
 Berlin
 Milan
@@ -141,20 +215,20 @@ SELECT count(*) FROM tiny.cities WHERE ST_Intersects(geometry, ST_MakeEnvelope(-
 
 # Other pushed filters, including expressions the worker must evaluate, stay exact.
 query T
-SELECT name FROM tiny.cities WHERE ST_Intersects(geometry, ST_MakeEnvelope(0, 40, 30, 55)) AND name LIKE '%a%' AND population < 3000000 ORDER BY name;
+SELECT name FROM tiny.cities WHERE ST_Intersects(geometry, ST_MakeEnvelope(1, 40, 30, 55)) AND name LIKE '%a%' AND population < 3000000 ORDER BY name;
 ----
 Milan
 Paris
 Vienna
 
 query T
-SELECT name FROM tiny.cities WHERE ST_Intersects(geometry, ST_MakeEnvelope(0, 40, 30, 55)) AND lower(name) = 'paris';
+SELECT name FROM tiny.cities WHERE ST_Intersects(geometry, ST_MakeEnvelope(1, 40, 30, 55)) AND lower(name) = 'paris';
 ----
 Paris
 
 # An OR derives no hint, so the guard still applies.
 statement error
-SELECT count(*) FROM tiny.cities WHERE ST_Intersects(geometry, ST_MakeEnvelope(0, 40, 30, 55)) OR name = 'x';
+SELECT count(*) FROM tiny.cities WHERE ST_Intersects(geometry, ST_MakeEnvelope(1, 40, 30, 55)) OR name = 'x';
 ----
 <REGEX>:.*more than 1 tiles.*
 
@@ -163,7 +237,7 @@ statement ok
 ATTACH 'mvt' AS tinymerc (TYPE vgi, LOCATION '{MVT_WORKER}', tileset '{MVT_FIXTURES}/sample.mbtiles', zoom 1, max_tiles 1, coordinates 'web_mercator');
 
 query I
-SELECT count(DISTINCT name) FROM tinymerc.cities WHERE ST_Intersects(geometry, ST_MakeEnvelope(0, 4.8e6, 3.4e6, 7.4e6));
+SELECT count(DISTINCT name) FROM tinymerc.cities WHERE ST_Intersects(geometry, ST_MakeEnvelope(1.1e5, 4.8e6, 3.4e6, 7.4e6));
 ----
 4
 
@@ -203,6 +277,11 @@ statement error
 ATTACH 'mvt' AS badbox (TYPE vgi, LOCATION '{MVT_WORKER}', tileset '{MVT_FIXTURES}/sample.pmtiles', bbox '1,2,3');
 ----
 <REGEX>:.*west,south,east,north.*
+
+statement error
+ATTACH 'mvt' AS badedges (TYPE vgi, LOCATION '{MVT_WORKER}', tileset '{MVT_FIXTURES}/sample.pmtiles', tile_edges 'dedupe');
+----
+<REGEX>:.*tile_edges must be one of.*
 
 statement error
 ATTACH 'mvt' AS badcrs (TYPE vgi, LOCATION '{MVT_WORKER}', tileset '{MVT_FIXTURES}/sample.pmtiles', coordinates 'lambert');
