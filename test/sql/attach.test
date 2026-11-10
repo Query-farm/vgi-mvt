@@ -114,6 +114,59 @@ SELECT count(*) FROM tiny.cities;
 ----
 <REGEX>:.*more than 1 tiles.*
 
+# ---------------------------------------------------------------- spatial filter pushdown
+
+# WHERE ST_Intersects(...) pushes a bounding-box hint into the scan: this table may read only
+# one tile, and a box over the eastern tile succeeds where the whole table is refused (above).
+query T
+SELECT name FROM tiny.cities WHERE ST_Intersects(geometry, ST_MakeEnvelope(0, 40, 30, 55)) ORDER BY name;
+----
+Berlin
+Milan
+Paris
+Vienna
+
+# The hint narrows tiles; DuckDB still applies the exact predicate.
+query T
+SELECT name FROM tiny.cities WHERE ST_Within(geometry, ST_MakeEnvelope(8, 44, 17, 49)) ORDER BY name;
+----
+Milan
+Vienna
+
+# A box that covers no tile reads nothing.
+query I
+SELECT count(*) FROM tiny.cities WHERE ST_Intersects(geometry, ST_MakeEnvelope(-170, -10, -160, 0));
+----
+0
+
+# Other pushed filters, including expressions the worker must evaluate, stay exact.
+query T
+SELECT name FROM tiny.cities WHERE ST_Intersects(geometry, ST_MakeEnvelope(0, 40, 30, 55)) AND name LIKE '%a%' AND population < 3000000 ORDER BY name;
+----
+Milan
+Paris
+Vienna
+
+query T
+SELECT name FROM tiny.cities WHERE ST_Intersects(geometry, ST_MakeEnvelope(0, 40, 30, 55)) AND lower(name) = 'paris';
+----
+Paris
+
+# An OR derives no hint, so the guard still applies.
+statement error
+SELECT count(*) FROM tiny.cities WHERE ST_Intersects(geometry, ST_MakeEnvelope(0, 40, 30, 55)) OR name = 'x';
+----
+<REGEX>:.*more than 1 tiles.*
+
+# The hint is read in the table's coordinate system.
+statement ok
+ATTACH 'mvt' AS tinymerc (TYPE vgi, LOCATION '{MVT_WORKER}', tileset '{MVT_FIXTURES}/sample.mbtiles', zoom 1, max_tiles 1, coordinates 'web_mercator');
+
+query I
+SELECT count(DISTINCT name) FROM tinymerc.cities WHERE ST_Intersects(geometry, ST_MakeEnvelope(0, 4.8e6, 3.4e6, 7.4e6));
+----
+4
+
 # ---------------------------------------------------------------- remote PMTiles
 
 statement ok

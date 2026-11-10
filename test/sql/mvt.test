@@ -145,6 +145,20 @@ SELECT count(*) FROM mvt.main.read_tiles('{MVT_FIXTURES}/sample.mbtiles', zoom :
 ----
 6
 
+# The pushed ST_Intersects box also narrows a direct read_tiles call, and lets a {z}/{x}/{y}
+# template run without an explicit bbox.
+query I
+SELECT count(*) FROM mvt.main.read_tiles('{MVT_FIXTURES}/sample.mbtiles', zoom := 1, layer := 'cities', max_tiles := 1)
+WHERE ST_Intersects(geometry, ST_MakeEnvelope(0, 40, 30, 55));
+----
+4
+
+query I
+SELECT count(*) FROM mvt.main.read_tiles('{MVT_TILE_SERVER}/xyz/{z}/{x}/{y}.mvt', zoom := 2, layer := 'cities')
+WHERE ST_Intersects(geometry, ST_MakeEnvelope(0, 40, 30, 55));
+----
+4
+
 # ---------------------------------------------------------------- remote sources (offline HTTP server)
 
 query TI

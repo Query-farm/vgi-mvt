@@ -13,11 +13,11 @@ import json
 import threading
 from collections import OrderedDict
 from dataclasses import dataclass
-from typing import Annotated, cast
+from typing import Annotated, Any, cast
 
 from vgi.arguments import Arg
 from vgi.invocation import BindResponse
-from vgi.metadata import FunctionExample
+from vgi.metadata import FilterFunctionCapability, FunctionExample
 from vgi.table_function import (
     BindParams,
     OutputCollector,
@@ -29,6 +29,7 @@ from vgi_rpc import ArrowSerializableDataclass
 
 from .meta import FIRENZE_PMTILES, STREETS_TILE, ZCTA_PMTILES, object_tags
 from .mvt import COORDINATE_CHOICES, Coordinates, decode_tile
+from .pushdown import INTERSECTS_EXTENT, clamp_to_world, intersect, pushed_bbox
 from .rows import RowBuilder, attribute_fields, dynamic_columns_md, infer_field_types, output_schema
 from .sources import BBox, TileKey, TileSourceError, open_source, read_bytes
 
@@ -127,9 +128,18 @@ def _resolve_zoom(args: ReadTilesArgs) -> int:
     return int(info.maxzoom)
 
 
-def _tile_list(args: ReadTilesArgs) -> list[TileKey]:
+def _tile_list(args: ReadTilesArgs, hint: BBox | None = None) -> list[TileKey]:
+    """Tiles to read: the zoom's tiles inside the argument bbox and the pushed spatial hint."""
     z = _resolve_zoom(args)
-    bbox = _bbox(args.west, args.south, args.east, args.north)
+    combined = intersect(_bbox(args.west, args.south, args.east, args.north), hint)
+    if combined is False:
+        return []
+    bbox: BBox | None = None
+    if isinstance(combined, tuple):
+        clamped = clamp_to_world(combined)
+        if clamped is False:
+            return []
+        bbox = clamped if isinstance(clamped, tuple) else None
     key = (args.source, z, bbox, args.max_tiles)
     with _TILE_LISTS_LOCK:
         hit = _TILE_LISTS.get(key)
@@ -151,6 +161,12 @@ class ReadTiles(TableFunctionGenerator[ReadTilesArgs, TileCursor]):
         """Function metadata surfaced to DuckDB, agents and vgi-lint."""
 
         name = "read_tiles"
+        # Accept DuckDB's filters so the VGI extension can push the bounding box of
+        # WHERE ST_Intersects(geometry, <constant>) (an optional `&&` hint) into the
+        # scan; the SDK applies every pushed filter to the rows we emit.
+        filter_pushdown = True
+        auto_apply_filters = True
+        additional_filter_functions = [FilterFunctionCapability(*INTERSECTS_EXTENT)]
         description = "Read the features of a PMTiles, MBTiles or XYZ vector tileset as rows with a GEOMETRY column"
         tags = {
             **object_tags(
@@ -167,7 +183,9 @@ class ReadTiles(TableFunctionGenerator[ReadTilesArgs, TileCursor]):
                     "(defaults to the tileset maxzoom), `layer` (read one layer and add a typed column per "
                     "attribute), `west`/`south`/`east`/`north` (WGS84 bbox; all four or none; required for "
                     "URL templates), `coordinates` ('wgs84' default, 'web_mercator' or 'tile') and "
-                    "`max_tiles` (default 10000; the call fails rather than read more). Columns: layer, "
+                    "`max_tiles` (default 10000; the call fails rather than read more). A constant "
+                    "`WHERE ST_Intersects(geometry, <geometry>)` (or ST_Within/ST_Contains/...) also narrows "
+                    "the tiles read, so it can replace the bbox arguments. Columns: layer, "
                     "z, x, y, feature_id, geometry_type, geometry (GEOMETRY), properties (JSON) and, with "
                     "`layer`, one typed column per layer attribute. Features crossing tile edges appear once per tile, "
                     "clipped with a small buffer: group by feature_id and ST_Union_Agg to merge them. Use "
@@ -245,6 +263,13 @@ class ReadTiles(TableFunctionGenerator[ReadTilesArgs, TileCursor]):
         return BindResponse(output_schema=output_schema(extra, args.coordinates))
 
     @classmethod
+    def _pushed_filters(cls, params: ProcessParams[ReadTilesArgs]) -> Any:
+        init = params.init_call
+        if init is None or init.pushdown_filters is None:
+            return None
+        return cls.pushdown_filters(init.pushdown_filters, join_keys=init.join_keys, output_schema=init.output_schema)
+
+    @classmethod
     def initial_state(cls, params: ProcessParams[ReadTilesArgs]) -> TileCursor:
         """Start at the first tile."""
         return TileCursor()
@@ -253,8 +278,12 @@ class ReadTiles(TableFunctionGenerator[ReadTilesArgs, TileCursor]):
     def process(cls, params: ProcessParams[ReadTilesArgs], state: TileCursor, out: OutputCollector) -> None:
         """Decode tiles until a batch is full, then emit it."""
         args = params.args
+        hint = pushed_bbox(cls._pushed_filters(params), cast("Coordinates", args.coordinates))
+        if hint is False:  # the spatial filter lies outside the world: nothing can match
+            out.finish()
+            return
         try:
-            keys = _tile_list(args)
+            keys = _tile_list(args, hint if isinstance(hint, tuple) else None)
             source = open_source(args.source)
             rows = RowBuilder(params.output_schema, cast("Coordinates", args.coordinates), args.layer)
             while state.next_tile < len(keys) and len(rows) < BATCH_ROWS:

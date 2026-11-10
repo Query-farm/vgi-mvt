@@ -855,7 +855,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "pmtiles" },
-    { name = "vgi-python", extra = ["http"] },
+    { name = "vgi-python", extra = ["haybarn", "http"] },
 ]
 
 [package.dev-dependencies]
@@ -870,7 +870,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "pmtiles", specifier = ">=3.4" },
-    { name = "vgi-python", extras = ["http"], specifier = ">=0.50.0,<0.51" },
+    { name = "vgi-python", extras = ["http", "haybarn"], specifier = ">=0.50.0,<0.51" },
 ]
 
 [package.metadata.requires-dev]

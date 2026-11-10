@@ -28,6 +28,7 @@ src/mvt_worker/
   read_tiles.py    # read_tiles, read_mvt
   decode.py        # mvt_decode (table in-out)
   layers.py        # tileset_layers, tileset_metadata
+  pushdown.py      # pushed `geometry && <constant>` hint -> bbox for tile selection
   catalog.py       # ATTACH ... tileset '...': one table per layer (catalog hooks see only
                    #   attach_opaque_data, so the tileset settings are encoded there)
   worker.py        # assembles the catalog; add new functions to FUNCTIONS

@@ -143,3 +143,40 @@ def test_attach_bytes_round_trip() -> None:
     assert TilesetCatalog._attach(raw) == tileset_attach(options)
     assert tileset_attach({"tileset": "", "zoom": 3}) is None
     assert tileset_attach({"tileset": "x.pmtiles", "zoom": -1}).zoom is None  # type: ignore[union-attr]
+
+
+def test_wkb_envelope() -> None:
+    from mvt_worker.pushdown import wkb_envelope
+
+    point = struct.pack("<BIdd", 1, 1, 3.0, 4.0)
+    assert wkb_envelope(point) == (3.0, 4.0, 3.0, 4.0)
+    ring = [(0.0, 0.0), (10.0, 0.0), (10.0, 5.0), (0.0, 0.0)]
+    poly = struct.pack("<BIII", 1, 3, 1, len(ring)) + b"".join(struct.pack("<dd", *p) for p in ring)
+    assert wkb_envelope(poly) == (0.0, 0.0, 10.0, 5.0)
+    multi = struct.pack("<BII", 1, 4, 2) + struct.pack("<BIdd", 1, 1, -1.0, 2.0) + struct.pack("<BIdd", 1, 1, 5.0, -3.0)
+    assert wkb_envelope(multi) == (-1.0, -3.0, 5.0, 2.0)
+    point_z = struct.pack("<BIddd", 1, 1001, 1.0, 2.0, 99.0)  # ISO Z
+    assert wkb_envelope(point_z) == (1.0, 2.0, 1.0, 2.0)
+    ewkb_srid = struct.pack("<BIIdd", 1, 0x20000001, 4326, 7.0, 8.0)
+    assert wkb_envelope(ewkb_srid) == (7.0, 8.0, 7.0, 8.0)
+    big_endian = struct.pack(">BIdd", 0, 1, 3.0, 4.0)
+    assert wkb_envelope(big_endian) == (3.0, 4.0, 3.0, 4.0)
+    empty_point = struct.pack("<BIdd", 1, 1, math.nan, math.nan)
+    assert wkb_envelope(empty_point) is None
+    assert wkb_envelope(b"\x01\x03\x00\x00\x00\xff\xff\xff\xff") is None  # bogus ring count
+    assert wkb_envelope(point + b"x") is None  # trailing bytes
+
+
+def test_box_helpers() -> None:
+    from mvt_worker.pushdown import clamp_to_world, intersect, mercator_to_lonlat, to_lonlat_box
+
+    assert intersect(None, (0, 0, 1, 1)) == (0, 0, 1, 1)
+    assert intersect((0, 0, 2, 2), (1, 1, 3, 3)) == (1, 1, 2, 2)
+    assert intersect((0, 0, 1, 1), (2, 2, 3, 3)) is False
+    assert clamp_to_world((-200, -90, 200, 90)) == (-180.0, -85.0511287798066, 180.0, 85.0511287798066)
+    assert clamp_to_world((0, 86, 1, 89)) is False
+    lon, lat = mercator_to_lonlat(20037508.342789244, 0.0)
+    assert math.isclose(lon, 180.0) and abs(lat) < 1e-9
+    assert to_lonlat_box((0, 0, 1, 1), "tile") is None
+    box = to_lonlat_box((0.0, 0.0, 1113194.9, 1118889.97), "web_mercator")
+    assert box is not None and math.isclose(box[2], 10.0, abs_tol=1e-4) and math.isclose(box[3], 10.0, abs_tol=1e-4)

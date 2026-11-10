@@ -100,6 +100,26 @@
           "regions"
         ]
       ]
+    },
+    {
+      "name": "load-spatial",
+      "sql": "INSTALL spatial; LOAD spatial; SELECT 'spatial' AS loaded",
+      "rows": [
+        [
+          "spatial"
+        ]
+      ]
+    },
+    {
+      "sql": "SELECT name FROM mvt.main.read_tiles('test/fixtures/sample.mbtiles', zoom := 1, layer := 'cities', max_tiles := 1) WHERE ST_Intersects(geometry, ST_MakeEnvelope(8, 44, 17, 49)) ORDER BY name",
+      "rows": [
+        [
+          "Milan"
+        ],
+        [
+          "Vienna"
+        ]
+      ]
     }
   ],
   "attach_options": {

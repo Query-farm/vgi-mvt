@@ -38,17 +38,28 @@ SELECT name, geometry FROM florence.pois WHERE "pmap:kind" = 'cafe';
 | `coordinates` | `'wgs84'` | `'web_mercator'` or `'tile'` instead. |
 | `max_tiles` | 10000 | A table scan fails rather than read more tiles than this. |
 
+**Spatial filters choose the tiles.** For `WHERE ST_Intersects(geometry, <constant>)`, and
+likewise `ST_Contains`, `ST_Within`, `ST_Covers`, `ST_CoveredBy`, `ST_Overlaps`, `ST_Touches`,
+`ST_Crosses` and `ST_Equals`, the VGI extension pushes the constant's bounding box into the
+scan, and only the tiles under it are read. DuckDB still applies the exact predicate. So a
+worldwide archive needs no `bbox` option:
+
 ```sql
--- 4.6 GB of Overture places, scoped to central Florence at attach time.
-ATTACH 'mvt' AS places (TYPE vgi, LOCATION '/abs/path/to/vgi-mvt-worker',
-  tileset 'https://r2-public.protomaps.com/protomaps-sample-datasets/overture-pois.pmtiles',
-  bbox '11.24,43.76,11.27,43.78');
-SELECT category_main, count(*) AS n FROM places.pois GROUP BY ALL ORDER BY n DESC LIMIT 10;
+-- 4.6 GB of Overture places worldwide; this reads only the tiles over central Florence (about 1.4 s).
+ATTACH 'mvt' AS world (TYPE vgi, LOCATION '/abs/path/to/vgi-mvt-worker',
+  tileset 'https://r2-public.protomaps.com/protomaps-sample-datasets/overture-pois.pmtiles');
+
+SELECT category_main, count(*) AS n
+FROM world.pois
+WHERE ST_Intersects(geometry, ST_MakeEnvelope(11.24, 43.76, 11.27, 43.78))
+GROUP BY ALL ORDER BY n DESC LIMIT 10;
 ```
 
-A `WHERE ST_Intersects(geometry, …)` filter on a layer table is applied correctly, but it does
-not yet narrow which tiles are read: the worker does not yet accept the bounding box that the
-VGI extension can push down. Use the `bbox` option to scope a large archive. A bad path, a `{z}/{x}/{y}`
+The box has to come from a constant geometry, and it is not derived through an `OR` or a
+negation (`NOT ST_Intersects`, `ST_Disjoint`), or from a join against another table. Those
+queries read the whole zoom level and stop at `max_tiles`; use the `bbox` option for them. The
+same pushdown works on `read_tiles(...)` directly, and it lets a `{z}/{x}/{y}` template run
+without an explicit bbox. A bad path, a `{z}/{x}/{y}`
 template (which has no layer list) or a malformed `bbox` fails at `ATTACH` time.
 
 **Or call the reader functions directly:**
@@ -200,6 +211,7 @@ src/mvt_worker/
   decode.py       # mvt_decode (table in-out)
   layers.py       # tileset_layers, tileset_metadata
   catalog.py      # ATTACH a tileset: one table per layer, scans redirected to read_tiles
+  pushdown.py     # pushed ST_Intersects bounding box -> tile selection
   meta.py         # catalog metadata
   worker.py       # catalog assembly / entry point
 tests/            # pytest: decoder edge cases (tests/mvt_encode.py builds tiles) + worker calls
@@ -216,8 +228,9 @@ make lint-explain   # metadata quality (vgi-lint)
 make check          # everything CI runs
 ```
 
-The worker depends on `vgi-python` and `pmtiles` (for the PMTiles header codec and
-Hilbert tile IDs) and nothing else. The MVT decoder is pure Python. It decodes the
+The worker depends on `vgi-python` (with its `haybarn` extra: an embedded engine, about 43 MB,
+that the SDK uses to apply the filters DuckDB pushes into `read_tiles`) and `pmtiles` (for the
+PMTiles header codec and Hilbert tile IDs). The MVT decoder is pure Python. It decodes the
 2,759-feature Mapbox Streets sample tile in about 25 ms.
 
 `stdout` carries the Arrow protocol, so log to stderr (`logging`; `--debug` turns it up).

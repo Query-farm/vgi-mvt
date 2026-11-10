@@ -9,7 +9,9 @@ requires-python = ">=3.13"
 dependencies = [
     # [http] adds the HTTP transport (`--http`) used by Docker deploys.
     # SDK bumps go through the template (minor bumps can raise the protocol).
-    "vgi-python[http]>=0.50.0,<0.51",
+    # [haybarn] embeds the engine the SDK uses to apply filters DuckDB pushes into
+    # read_tiles (filter_pushdown, needed for the spatial bounding-box hint).
+    "vgi-python[http,haybarn]>=0.50.0,<0.51",
     # PMTiles v3 header/directory codec (pure Python, BSD-3-Clause).
     "pmtiles>=3.4",
 ]
