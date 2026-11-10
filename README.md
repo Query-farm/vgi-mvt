@@ -18,6 +18,41 @@ This worker decodes them **back into rows**. Each row holds one feature with a D
 `JSON` and, when you pick a layer, as typed columns. The CRS tag carries through to
 GeoParquet when you `COPY` the result out.
 
+**Attach a tileset as a database.** Each layer becomes a table, and each layer attribute
+becomes a typed column:
+
+```sql
+ATTACH 'mvt' AS florence (TYPE vgi, LOCATION '/abs/path/to/vgi-mvt-worker',
+  tileset 'https://raw.githubusercontent.com/protomaps/PMTiles/main/spec/v3/protomaps(vector)ODbL_firenze.pmtiles');
+
+SHOW ALL TABLES;                                   -- boundaries, buildings, earth, ..., roads, water
+SELECT "pmap:kind" AS kind, count(*) FROM florence.roads GROUP BY kind;
+SELECT name, geometry FROM florence.pois WHERE "pmap:kind" = 'cafe';
+```
+
+| ATTACH option | Default | Meaning |
+|---|---|---|
+| `tileset` | (none) | PMTiles file or `https://` URL, or a local MBTiles file. Without it you get only the functions below. |
+| `zoom` | the tileset's max zoom | Zoom level every layer table reads. |
+| `bbox` | whole tileset | `'west,south,east,north'` in degrees: every table reads only the tiles covering it. Needed for planet-scale archives. |
+| `coordinates` | `'wgs84'` | `'web_mercator'` or `'tile'` instead. |
+| `max_tiles` | 10000 | A table scan fails rather than read more tiles than this. |
+
+```sql
+-- 4.6 GB of Overture places, scoped to central Florence at attach time.
+ATTACH 'mvt' AS places (TYPE vgi, LOCATION '/abs/path/to/vgi-mvt-worker',
+  tileset 'https://r2-public.protomaps.com/protomaps-sample-datasets/overture-pois.pmtiles',
+  bbox '11.24,43.76,11.27,43.78');
+SELECT category_main, count(*) AS n FROM places.pois GROUP BY ALL ORDER BY n DESC LIMIT 10;
+```
+
+A `WHERE ST_Intersects(geometry, …)` filter on a layer table is applied correctly, but it does
+not yet narrow which tiles are read: the VGI extension does not send spatial predicates to
+the worker yet. Use the `bbox` option to scope a large archive. A bad path, a `{z}/{x}/{y}`
+template (which has no layer list) or a malformed `bbox` fails at `ATTACH` time.
+
+**Or call the reader functions directly:**
+
 ```sql
 SELECT name, population, capital, geometry
 FROM mvt.main.read_tiles('cities.pmtiles', layer := 'cities')
@@ -164,6 +199,7 @@ src/mvt_worker/
   read_tiles.py   # read_tiles, read_mvt
   decode.py       # mvt_decode (table in-out)
   layers.py       # tileset_layers, tileset_metadata
+  catalog.py      # ATTACH a tileset: one table per layer, scans redirected to read_tiles
   meta.py         # catalog metadata
   worker.py       # catalog assembly / entry point
 tests/            # pytest: decoder edge cases (tests/mvt_encode.py builds tiles) + worker calls

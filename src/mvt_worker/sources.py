@@ -495,8 +495,8 @@ class XYZSource:
 def _check_count(z: int, count: int, limit: int, *, shown: int | None = None) -> None:
     if count > limit:
         raise TileSourceError(
-            f"more than {shown or limit} tiles at zoom {z} (max_tiles); narrow the area with "
-            "west/south/east/north, pick a lower zoom, or raise max_tiles"
+            f"more than {shown or limit} tiles at zoom {z} (max_tiles); narrow the area (the "
+            "west/south/east/north arguments, or the bbox ATTACH option), pick a lower zoom, or raise max_tiles"
         )
 
 

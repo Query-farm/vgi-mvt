@@ -1,28 +1,108 @@
 {
   "schema_version": 1,
   "catalog": "mvt",
-  "worker": [".venv/bin/vgi-mvt-worker"],
+  "worker": [
+    ".venv/bin/vgi-mvt-worker"
+  ],
   "checks": [
     {
       "sql": "SELECT layer, count(*)::INTEGER AS n FROM mvt.main.read_tiles('test/fixtures/sample.pmtiles', zoom := 2) GROUP BY layer ORDER BY layer",
-      "columns": ["layer", "n"],
-      "rows": [["cities", 4], ["regions", 2]]
+      "columns": [
+        "layer",
+        "n"
+      ],
+      "rows": [
+        [
+          "cities",
+          4
+        ],
+        [
+          "regions",
+          2
+        ]
+      ]
     },
     {
       "sql": "SELECT name, population, capital, typeof(geometry) AS t FROM mvt.main.read_tiles('test/fixtures/sample.mbtiles', layer := 'cities') ORDER BY population DESC LIMIT 2",
-      "rows": [["Berlin", 3645000.0, true, "GEOMETRY('OGC:CRS84')"], ["Paris", 2148000.0, true, "GEOMETRY('OGC:CRS84')"]]
+      "rows": [
+        [
+          "Berlin",
+          3645000.0,
+          true,
+          "GEOMETRY('OGC:CRS84')"
+        ],
+        [
+          "Paris",
+          2148000.0,
+          true,
+          "GEOMETRY('OGC:CRS84')"
+        ]
+      ]
     },
     {
       "sql": "SELECT geometry::VARCHAR AS wkt FROM mvt.main.mvt_decode((SELECT from_hex('1a2e78020a06706f696e7473120f0807120200001801220509802080201a046e616d6522080a066f726967696e288020') AS tile, 0 AS z, 0 AS x, 0 AS y))",
-      "rows": [["POINT (0 0)"]]
+      "rows": [
+        [
+          "POINT (0 0)"
+        ]
+      ]
     },
     {
       "sql": "SELECT field, type FROM mvt.main.tileset_layers('test/fixtures/sample.pmtiles') WHERE layer = 'regions' ORDER BY field",
-      "rows": [["area_rank", "Number"], ["code", "String"], ["label", "String"]]
+      "rows": [
+        [
+          "area_rank",
+          "Number"
+        ],
+        [
+          "code",
+          "String"
+        ],
+        [
+          "label",
+          "String"
+        ]
+      ]
     },
     {
       "sql": "SELECT geometry_type, count(*)::INTEGER AS n FROM mvt.main.read_mvt('test/fixtures/0-0-0.mvt', 0, 0, 0) GROUP BY ALL ORDER BY ALL",
-      "rows": [["POINT", 4], ["POLYGON", 2]]
+      "rows": [
+        [
+          "POINT",
+          4
+        ],
+        [
+          "POLYGON",
+          2
+        ]
+      ]
+    },
+    {
+      "sql": "SELECT name, capital FROM mvt.main.cities ORDER BY population DESC LIMIT 2",
+      "rows": [
+        [
+          "Berlin",
+          true
+        ],
+        [
+          "Paris",
+          true
+        ]
+      ]
+    },
+    {
+      "sql": "SELECT table_name FROM duckdb_tables() WHERE database_name = 'mvt' ORDER BY table_name",
+      "rows": [
+        [
+          "cities"
+        ],
+        [
+          "regions"
+        ]
+      ]
     }
-  ]
+  ],
+  "attach_options": {
+    "tileset": "test/fixtures/sample.pmtiles"
+  }
 }

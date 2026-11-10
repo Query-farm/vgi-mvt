@@ -123,3 +123,23 @@ def test_nan_property_is_null_in_json() -> None:
     rows = RowBuilder(output_schema(), "wgs84", None)
     rows.add_tile(0, 0, 0, tile(lay))
     assert json.loads(rows.take().to_pylist()[0]["properties"]) == {"v": None}
+
+
+def test_parse_bbox() -> None:
+    from mvt_worker.catalog import parse_bbox
+
+    assert parse_bbox("") is None
+    assert parse_bbox(" 1, 2 ,3,4 ") == (1.0, 2.0, 3.0, 4.0)
+    for bad in ("1,2,3", "a,b,c,d", "3,0,1,1", "0,0,200,1", "nan,0,1,1"):
+        with pytest.raises(ValueError, match="bbox"):
+            parse_bbox(bad)
+
+
+def test_attach_bytes_round_trip() -> None:
+    from mvt_worker.catalog import TilesetCatalog, tileset_attach
+
+    options = {"tileset": "/data/a.pmtiles", "zoom": 7, "bbox": "0,0,1,1", "coordinates": "tile", "max_tiles": 5}
+    raw = TilesetCatalog().attach_opaque_data_for(name="mvt", options=options)
+    assert TilesetCatalog._attach(raw) == tileset_attach(options)
+    assert tileset_attach({"tileset": "", "zoom": 3}) is None
+    assert tileset_attach({"tileset": "x.pmtiles", "zoom": -1}).zoom is None  # type: ignore[union-attr]

@@ -16,11 +16,13 @@ Attach it from DuckDB:
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Annotated, Any
 
 from vgi import Worker
 from vgi.catalog import Catalog, Schema
+from vgi.catalog.attach_option import AttachOption
 
+from .catalog import TilesetCatalog
 from .decode import MvtDecode
 from .layers import TilesetLayers, TilesetMetadata
 from .meta import (
@@ -33,7 +35,7 @@ from .meta import (
     SOURCE_URL,
     keywords_array,
 )
-from .read_tiles import ReadMvt, ReadTiles
+from .read_tiles import DEFAULT_MAX_TILES, ReadMvt, ReadTiles
 
 FUNCTIONS: list[type[Any]] = [ReadTiles, ReadMvt, MvtDecode, TilesetLayers, TilesetMetadata]
 
@@ -59,8 +61,8 @@ def _stamp_example_queries(functions: list[type[Any]]) -> list[dict[str, str]]:
 _ALL_EXAMPLES = _stamp_example_queries(FUNCTIONS)
 
 
-class MvtWorker(Worker):
-    """The worker process: one catalog, one ``main`` schema."""
+class MvtCatalog(TilesetCatalog):
+    """The ``mvt`` catalog: the reader functions, plus one table per layer of an attached tileset."""
 
     catalog = Catalog(
         name=CATALOG_NAME,
@@ -86,6 +88,44 @@ class MvtWorker(Worker):
             )
         ],
     )
+
+
+class MvtWorker(Worker):
+    """The worker process: the ``mvt`` catalog and its ATTACH options."""
+
+    catalog_interface = MvtCatalog
+    catalog_name = CATALOG_NAME
+
+    class AttachOptions:
+        """Options for ``ATTACH 'mvt' AS name (TYPE vgi, LOCATION ..., tileset '...')``."""
+
+        tileset: Annotated[
+            str,
+            AttachOption(
+                desc=(
+                    "PMTiles file or http(s) URL, or local MBTiles file, to expose as tables "
+                    "(one per layer). Empty attaches only the reader functions."
+                )
+            ),
+        ] = ""
+        zoom: Annotated[
+            int,
+            AttachOption(desc="Zoom level the layer tables read; -1 (default) uses the tileset's maxzoom."),
+        ] = -1
+        bbox: Annotated[
+            str,
+            AttachOption(
+                desc="Limit every layer table to the tiles covering 'west,south,east,north' (degrees); empty reads all."
+            ),
+        ] = ""
+        coordinates: Annotated[
+            str,
+            AttachOption(desc="Geometry coordinates of the layer tables: 'wgs84' (default), 'web_mercator' or 'tile'."),
+        ] = "wgs84"
+        max_tiles: Annotated[
+            int,
+            AttachOption(desc="A layer table scan fails rather than read more than this many tiles."),
+        ] = DEFAULT_MAX_TILES
 
 
 def main() -> None:

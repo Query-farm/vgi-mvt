@@ -1,0 +1,157 @@
+# name: test/sql/attach.test
+# description: ATTACH a tileset as a database: one table per layer
+# group: [mvt]
+
+require vgi
+
+require-env MVT_WORKER
+
+require-env MVT_FIXTURES
+
+require-env MVT_TILE_SERVER
+
+statement ok
+LOAD spatial;
+
+# ---------------------------------------------------------------- PMTiles: one table per layer
+
+statement ok
+ATTACH 'mvt' AS sample (TYPE vgi, LOCATION '{MVT_WORKER}', tileset '{MVT_FIXTURES}/sample.pmtiles');
+
+query T
+SELECT table_name FROM duckdb_tables() WHERE database_name = 'sample' ORDER BY table_name;
+----
+cities
+regions
+
+# Attributes are typed columns; the default zoom is the tileset maxzoom (3).
+query TRTI
+SELECT name, population, capital, z FROM sample.cities ORDER BY population DESC;
+----
+Berlin	3645000.0	true	3
+Paris	2148000.0	true	3
+Vienna	1897000.0	true	3
+Milan	1352000.0	false	3
+
+query TTI
+SELECT code, label, ST_NumInteriorRings(geometry) FROM sample.regions ORDER BY code;
+----
+A	Square with a hole	1
+B	Triangle	0
+
+query TT
+SELECT column_name, column_type FROM (DESCRIBE sample.cities) WHERE column_name IN ('geometry', 'population', 'capital') ORDER BY column_name;
+----
+capital	BOOLEAN
+geometry	GEOMETRY('OGC:CRS84')
+population	DOUBLE
+
+# Ordinary SQL on top: joins between layers, spatial predicates.
+query TT
+SELECT r.code, c.name FROM sample.regions r JOIN sample.cities c ON ST_Contains(r.geometry, c.geometry) ORDER BY ALL;
+----
+A	Milan
+
+query T
+SELECT name FROM sample.cities WHERE ST_Intersects(geometry, ST_MakeEnvelope(10, 44, 20, 50));
+----
+Vienna
+
+# The reader functions are still there.
+query TI
+SELECT layer, count(*) FROM sample.main.read_tiles('{MVT_FIXTURES}/sample.mbtiles', zoom := 2) GROUP BY layer ORDER BY layer;
+----
+cities	4
+regions	2
+
+statement ok
+DETACH sample;
+
+# ---------------------------------------------------------------- MBTiles, zoom, coordinates
+
+statement ok
+ATTACH 'mvt' AS mb (TYPE vgi, LOCATION '{MVT_WORKER}', tileset '{MVT_FIXTURES}/sample.mbtiles', zoom 1, coordinates 'web_mercator');
+
+# Known behaviour: at zoom 1 the fixture spans two tiles and Paris (2.35 E) also sits in the
+# western tile's buffer, so it comes back twice. Rows are per tile, not per feature.
+query III
+SELECT count(*), count(DISTINCT name), max(z) FROM mb.cities;
+----
+5	4	1
+
+query T
+SELECT typeof(geometry) FROM mb.regions LIMIT 1;
+----
+GEOMETRY('EPSG:3857')
+
+statement ok
+DETACH mb;
+
+# ---------------------------------------------------------------- bbox scopes every table
+
+statement ok
+ATTACH 'mvt' AS pacific (TYPE vgi, LOCATION '{MVT_WORKER}', tileset '{MVT_FIXTURES}/sample.pmtiles', bbox '-170,-10,-160,0');
+
+query I
+SELECT count(*) FROM pacific.cities;
+----
+0
+
+statement ok
+ATTACH 'mvt' AS europe (TYPE vgi, LOCATION '{MVT_WORKER}', tileset '{MVT_FIXTURES}/sample.pmtiles', bbox '0,40,30,55');
+
+query I
+SELECT count(*) FROM europe.cities;
+----
+4
+
+# max_tiles guards a layer table scan.
+statement ok
+ATTACH 'mvt' AS tiny (TYPE vgi, LOCATION '{MVT_WORKER}', tileset '{MVT_FIXTURES}/sample.mbtiles', zoom 1, max_tiles 1);
+
+statement error
+SELECT count(*) FROM tiny.cities;
+----
+<REGEX>:.*more than 1 tiles.*
+
+# ---------------------------------------------------------------- remote PMTiles
+
+statement ok
+ATTACH 'mvt' AS remote (TYPE vgi, LOCATION '{MVT_WORKER}', tileset '{MVT_TILE_SERVER}/sample.pmtiles');
+
+query I
+SELECT count(*) FROM remote.regions;
+----
+2
+
+# ---------------------------------------------------------------- without a tileset: functions only
+
+statement ok
+ATTACH 'mvt' AS plain (TYPE vgi, LOCATION '{MVT_WORKER}');
+
+query I
+SELECT count(*) FROM duckdb_tables() WHERE database_name = 'plain';
+----
+0
+
+# ---------------------------------------------------------------- errors surface at ATTACH
+
+statement error
+ATTACH 'mvt' AS missing (TYPE vgi, LOCATION '{MVT_WORKER}', tileset '{MVT_FIXTURES}/does-not-exist.pmtiles');
+----
+<REGEX>:.*cannot open.*
+
+statement error
+ATTACH 'mvt' AS template (TYPE vgi, LOCATION '{MVT_WORKER}', tileset '{MVT_TILE_SERVER}/xyz/{z}/{x}/{y}.mvt');
+----
+<REGEX>:.*cannot be attached.*
+
+statement error
+ATTACH 'mvt' AS badbox (TYPE vgi, LOCATION '{MVT_WORKER}', tileset '{MVT_FIXTURES}/sample.pmtiles', bbox '1,2,3');
+----
+<REGEX>:.*west,south,east,north.*
+
+statement error
+ATTACH 'mvt' AS badcrs (TYPE vgi, LOCATION '{MVT_WORKER}', tileset '{MVT_FIXTURES}/sample.pmtiles', coordinates 'lambert');
+----
+<REGEX>:.*coordinates must be one of.*
