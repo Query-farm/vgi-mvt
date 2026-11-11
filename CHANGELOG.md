@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.2 (2026-11-11)
 
 - Written archives get normal file permissions (0666 minus the umask, or those of the file
   they replace) instead of the temporary file's 0600, which a web server running as another

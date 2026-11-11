@@ -325,7 +325,7 @@ SELECT layer, count(*) FROM mvt.main.read_tiles('/abs/path/to/vgi-mvt/test/fixtu
 Or attach it from **Haybarn 2.0** (`uvx haybarn-cli`): `INSTALL vgi FROM community; LOAD vgi;`, then use the same `ATTACH`.
 
 Once a release is tagged, you can run it without cloning:
-`LOCATION 'uvx --from git+https://github.com/Query-farm/vgi-mvt@v0.2.1 vgi-mvt-worker'`.
+`LOCATION 'uvx --from git+https://github.com/Query-farm/vgi-mvt@v0.2.2 vgi-mvt-worker'`.
 
 ## Development
 

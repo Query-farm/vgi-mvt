@@ -1,6 +1,6 @@
 [project]
 name = "vgi-mvt-worker"
-version = "0.2.1"
+version = "0.2.2"
 description = "Decode Mapbox Vector Tiles (PMTiles, MBTiles, XYZ, .mvt) into DuckDB tables with GEOMETRY columns"
 readme = "README.md"
 license = "MIT-0"
