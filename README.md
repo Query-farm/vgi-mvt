@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Query-farm/vgi/main/docs/vgi-logo.png" alt="Vector Gateway Interface (VGI)" width="320">
+  <img src="docs/vgi-logo.png" alt="Vector Gateway Interface (VGI)" width="320">
 </p>
 
 <p align="center"><em>A Query.Farm VGI worker for DuckDB.</em></p>
