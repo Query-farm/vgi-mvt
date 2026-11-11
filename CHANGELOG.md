@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.0 (unreleased)
+## 0.1.0 (2026-11-10)
 
 First release: decode Mapbox Vector Tiles from PMTiles (local or HTTP range), MBTiles,
 XYZ templates and single `.mvt` files into DuckDB rows with `GEOMETRY` and JSON columns.
