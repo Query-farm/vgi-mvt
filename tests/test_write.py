@@ -358,3 +358,19 @@ def test_merging_long_lines_decodes_each_tile_once(tmp_path: Path, monkeypatch: 
     decodes, small = merged(src, keys, 64 << 10)
     assert decodes > len(keys)
     assert small == full
+
+
+def test_archive_gets_normal_file_permissions(tmp_path: Path) -> None:
+    import os
+    import stat
+
+    old = os.umask(0o022)
+    try:
+        out = write(tmp_path, [batch([shapely.Point(10, 10)])], maxzoom=0)
+    finally:
+        os.umask(old)
+    if os.name == "posix":
+        assert stat.S_IMODE(out.stat().st_mode) == 0o644
+        out.chmod(0o640)  # a replaced file keeps its permissions
+        write(tmp_path, [batch([shapely.Point(10, 10)])], maxzoom=0)
+        assert stat.S_IMODE(out.stat().st_mode) == 0o640

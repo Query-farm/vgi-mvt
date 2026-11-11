@@ -20,6 +20,7 @@ import hashlib
 import json
 import os
 import tempfile
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -27,6 +28,21 @@ from pmtiles.tile import Compression, Entry, TileType, serialize_header
 from pmtiles.writer import optimize_directories
 
 _ROOT_MAX = 16384 - 127  # header + root must fit the first 16 KiB a reader fetches
+
+
+def _mode_for(path: Path) -> int:
+    """Permissions for the finished archive: the replaced file's, else 0666 minus the umask."""
+    try:
+        return path.stat().st_mode & 0o777
+    except OSError:
+        pass
+    with _UMASK_LOCK:  # reading the umask means setting it; keep other threads out meanwhile
+        mask = os.umask(0o022)
+        os.umask(mask)
+    return 0o666 & ~mask
+
+
+_UMASK_LOCK = threading.Lock()
 
 
 class ArchiveWriter:
@@ -107,6 +123,9 @@ class ArchiveWriter:
                 self._spool.seek(0)
                 while chunk := self._spool.read(1 << 20):
                     out.write(chunk)
+            # NamedTemporaryFile creates the file 0600; give the archive the permissions any new
+            # file gets here (0666 minus the umask), or keep those of the file it replaces.
+            os.chmod(out.name, _mode_for(self.path))
             os.replace(out.name, self.path)
         except BaseException:
             Path(out.name).unlink(missing_ok=True)

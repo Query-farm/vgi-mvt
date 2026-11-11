@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Written archives get normal file permissions (0666 minus the umask, or those of the file
+  they replace) instead of the temporary file's 0600, which a web server running as another
+  user couldn't read.
+
 ## 0.2.1 (2026-11-11)
 
 - `tile_edges := 'merge'` no longer slows to a crawl on long lines spread over many tiles.
