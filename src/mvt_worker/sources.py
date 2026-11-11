@@ -12,7 +12,6 @@ from __future__ import annotations
 import http.client
 import json
 import logging
-import mmap
 import sqlite3
 import ssl
 import threading
@@ -300,26 +299,34 @@ class _ByteSource:
         self._lock = threading.Lock()
         self._cache: OrderedDict[tuple[int, int], bytes] = OrderedDict()
         self._cache_bytes = 0
+        self._path: Path | None = None
         if is_url(source):
-            self._mmap: mmap.mmap | None = None
             head = http_get(source, (0, HEAD_BYTES))
             if not head:
                 raise TileSourceError(f"HTTP 404 fetching {source}")
             self._head = head
         else:
-            try:
-                fh = Path(source).expanduser().open("rb")
-            except OSError as exc:
-                raise TileSourceError(f"cannot open {source}: {exc.strerror or exc}") from exc
-            with fh:
-                self._mmap = mmap.mmap(fh.fileno(), 0, access=mmap.ACCESS_READ)
-            self._head = self._mmap[:HEAD_BYTES]
+            # Local files are opened per read, not kept open (or memory-mapped): on Windows an
+            # open handle blocks replacing or deleting the file, e.g. a COPY ... TO over a
+            # tileset this worker read earlier. open_source keys its cache on the mtime, so a
+            # rewritten file is reopened rather than served stale.
+            self._path = Path(source).expanduser()
+            self._head = self._read_local(0, HEAD_BYTES)
+
+    def _read_local(self, offset: int, length: int) -> bytes:
+        assert self._path is not None
+        try:
+            with self._path.open("rb") as fh:
+                fh.seek(offset)
+                return fh.read(length)
+        except OSError as exc:
+            raise TileSourceError(f"cannot open {self.source}: {exc.strerror or exc}") from exc
 
     def get(self, offset: int, length: int, *, cache: bool = True) -> bytes:
         if offset + length <= len(self._head):
             return self._head[offset : offset + length]
-        if self._mmap is not None:
-            return self._mmap[offset : offset + length]
+        if self._path is not None:
+            return self._read_local(offset, length)
         key = (offset, length)
         with self._lock:
             hit = self._cache.get(key)

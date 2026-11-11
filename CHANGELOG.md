@@ -14,6 +14,8 @@ Write vector tilesets: `COPY (SELECT ...) TO 'out.pmtiles' (FORMAT 'mvt.pmtiles'
   features when a tile passes `max_tile_bytes`.
 - `make conformance` also checks the writer: mapbox-vector-tile must read every written tile
   exactly like this worker's decoder, and every polygon must be valid.
+- Local tilesets are no longer held open (memory-mapped) between reads, so on Windows a
+  tileset the worker has read can still be replaced or deleted.
 
 ## 0.1.0 (2026-11-10)
 

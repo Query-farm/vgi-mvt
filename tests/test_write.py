@@ -298,3 +298,17 @@ def test_text_properties_column(tmp_path: Path) -> None:
     assert [f.properties for f in layers[0].features] == [{"kind": "park"}, {"properties": "just text"}]
     with pytest.raises(ValueError, match="not a JSON object"):
         write(tmp_path, [b], "strict.pmtiles", maxzoom=0, properties_column="properties")
+
+
+def test_rewrite_a_tileset_that_was_read(tmp_path: Path) -> None:
+    # The reader must not keep the file open (Windows can't replace an open file), and must
+    # see the new contents afterwards rather than a cached copy.
+    first = write(tmp_path, [batch([shapely.Point(10, 10)], name=["old"])], maxzoom=0)
+    assert [f.properties["name"] for t in tiles(first, 0).values() for f in t[0].features] == ["old"]
+    import os
+    import time
+
+    time.sleep(0.01)
+    again = write(tmp_path, [batch([shapely.Point(10, 10)], name=["new"])], maxzoom=0)
+    os.utime(again, ns=(time.time_ns(), time.time_ns() + 1_000_000))  # distinct mtime on coarse clocks
+    assert [f.properties["name"] for t in tiles(again, 0).values() for f in t[0].features] == ["new"]
