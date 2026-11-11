@@ -4,7 +4,7 @@
 
 <p align="center"><em>A Query.Farm VGI worker for DuckDB.</em></p>
 
-# Read Mapbox Vector Tiles, PMTiles & MBTiles as Tables in DuckDB
+# Read & Write Mapbox Vector Tiles, PMTiles & MBTiles in DuckDB
 
 > **vgi-mvt** · a [Query.Farm](https://query.farm) VGI worker · written in Python
 
@@ -82,6 +82,70 @@ ORDER BY population DESC;
 Every feature-reading function returns `layer, z, x, y, feature_id, geometry_type,
 geometry, properties`. With `layer := 'name'`, one typed column per attribute of that
 layer follows.
+
+## Write a tileset
+
+The other direction is a `COPY` format. One row is one feature, and a `layer` column puts
+rows into different layers of the same tiles, so one `COPY` of a `UNION ALL` writes a whole
+multi-layer tileset:
+
+```sql
+COPY (
+    SELECT 'places' AS layer, id AS feature_id, name, population, ST_Point(lon, lat) AS geometry FROM places
+    UNION ALL BY NAME
+    SELECT 'roads' AS layer, id AS feature_id, name, kind, geom AS geometry FROM roads
+    UNION ALL BY NAME
+    SELECT 'parks' AS layer, id AS feature_id, name, geom AS geometry FROM parks
+    ORDER BY layer, population   -- drawing order inside each tile
+) TO 'city.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 14, name 'City basemap', attribution '© OpenStreetMap');
+```
+
+The result is an ordinary PMTiles v3 archive (clustered, gzip tiles, `vector_layers` metadata).
+The reference `pmtiles` Python reader, GDAL and this worker's own readers have been checked
+against it.
+
+| Column | Becomes |
+|---|---|
+| the `GEOMETRY` column | the feature's geometry. WGS84 lon/lat (or `EPSG:3857`); other CRSs are refused, so `ST_Transform` first. |
+| `layer` (`VARCHAR`) | the layer name. Without it every row goes to the `layer` option (default: the file name). |
+| `feature_id` (non-negative integer) | the feature id. |
+| `properties` (JSON objects) | expanded into attributes, so `read_tiles` output writes straight back. |
+| anything else | an attribute: text, numbers and booleans as themselves, dates as ISO text, lists and structs as JSON text. NULLs are left out. |
+
+Re-tiling an existing tileset: `COPY (SELECT * EXCLUDE (z, x, y, geometry_type) FROM
+mvt.main.read_tiles('in.pmtiles')) TO 'out.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 10)`.
+Without the `EXCLUDE`, the tile address columns would become attributes too.
+
+| Option | Default | Meaning |
+|---|---|---|
+| `minzoom`, `maxzoom` | 0, 14 | Zoom range written. |
+| `minzoom_column`, `maxzoom_column` | (none) | Integer columns giving each feature its own zoom range, e.g. small towns only from z8. |
+| `simplify` | 1 | Line and polygon simplification tolerance, in pixels of a 256-pixel tile. 0 turns it off. |
+| `buffer` | 4 | Margin each tile carries around its edge (pixels of a 256-pixel tile), so lines and labels don't clip at tile edges. |
+| `extent` | 4096 | Grid units per tile edge. |
+| `max_tile_bytes` | 500000 | The COPY fails if a compressed tile is larger. 0 removes the limit. |
+| `max_tiles` | 5000000 | The COPY fails rather than write more tiles than this. |
+| `layer_column`, `geometry_column`, `id_column`, `properties_column` | (by name) | Use other columns for those roles. |
+| `name`, `description`, `attribution` | file name, empty, empty | Tileset metadata. |
+
+How it tiles:
+- **Features are clipped to each tile plus the buffer**, snapped to the tile grid and
+  repaired, so every tile holds valid geometry. Polygons follow the MVT 2.1 winding rule.
+- **Lines and polygons are simplified per zoom** before they're cut, so neighbouring tiles
+  agree at their shared edge. A polygon smaller than a grid cell at some zoom disappears there,
+  as in other tilers.
+- **Nothing is dropped to fit a size limit.** The writer keeps every feature at every zoom in
+  range; when a tile grows past `max_tile_bytes` it stops with the tile's address and the
+  options that help (a later `minzoom`, a per-feature `minzoom_column`, more `simplify`).
+  tippecanoe and planetiler thin features automatically instead. Use them for planet-scale
+  basemaps.
+- **Identical tiles are stored once**, such as the all-water tiles inside a large polygon.
+- **The archive is written to a temporary file and renamed into place**, so a failed COPY
+  leaves no partial file. Destinations are local paths.
+
+Every written tile is checked by `make conformance`: mapbox-vector-tile reads 2,580 tiles of
+random points, lines and polygons with holes exactly as this worker's decoder does, and every
+polygon is valid. GDAL reads the archives too, with the same polygon areas.
 
 ## What survives the round trip
 
@@ -165,6 +229,11 @@ Reading 6,776 Overture POI tiles (about 590k features) over the internet takes a
 in-process and 70 s through DuckDB, with about 200 MiB of worker memory. The default `merge`
 mode costs about the same as `raw` on points. On the full US ZIP code archive at z7
 (320 tiles of complex polygons), `merge` takes 12 s against 5 s for `raw`.
+
+Writing is single-process Python with the geometry work done on whole arrays per zoom. Through
+DuckDB, 1M points take 70 s to z10 (146 MB archive) and 85 s to z12 (198 MB); 104k mixed
+points, lines and polygons take 24 s to z10. That suits city- and country-scale data; for
+planet-scale basemaps use tippecanoe or planetiler.
 
 ## Try it on public tilesets
 
@@ -270,6 +339,10 @@ src/mvt_worker/
   catalog.py      # ATTACH a tileset: one table per layer, scans redirected to read_tiles
   pushdown.py     # pushed ST_Intersects bounding box -> tile selection
   edges.py        # tile_edges: owned points, clip to tile, join pieces across tiles (shapely)
+  write_tiles.py  # COPY ... TO (FORMAT 'mvt.pmtiles'): column roles, attributes, zoom loop
+  tiler.py        # project, simplify, quadtree-clip and snap geometries per zoom (vectorised)
+  encode.py       # MVT encoder: layers/keys/values, vectorised geometry commands
+  archive.py      # PMTiles v3 archive writer (clustered, dedup, atomic rename)
   meta.py         # catalog metadata
   worker.py       # catalog assembly / entry point
 tests/            # pytest: decoder edge cases (tests/mvt_encode.py builds tiles) + worker calls
@@ -277,7 +350,7 @@ test/sql/         # sqllogictest suite, run through DuckDB over stdio, launch an
 test/fixtures/    # sample.pmtiles, sample.mbtiles, 0-0-0.mvt, xyz/ (generated from src/*.geojson)
 test/tile_server.py  # range-capable static server, for the offline HTTP tests
 scripts/make_fixtures.sh  # regenerate the fixtures with GDAL
-scripts/conformance.py    # decoder conformance + fuzz (make conformance)
+scripts/conformance.py    # decoder + writer conformance, fuzz (make conformance)
 ```
 
 ```bash

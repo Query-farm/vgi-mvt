@@ -7,7 +7,10 @@
 2. The suite's real-world Mapbox Streets tiles (~390k features), compared the same way.
 3. Optionally, any tilesets passed as arguments (`SOURCE ZOOM [MAX_TILES]`), e.g.
    a PMTiles URL; tiles are sampled at random with a fixed seed.
-4. A mutation fuzz of the decoder: only MvtDecodeError may escape, and no tile may
+4. The writer (COPY ... TO FORMAT 'mvt.pmtiles'): random points, lines and polygons
+   with holes are written to an archive; every tile is decoded by mapbox-vector-tile
+   and must match our decoder exactly, and every polygon must be valid.
+5. A mutation fuzz of the decoder: only MvtDecodeError may escape, and no tile may
    take more than a second.
 
 Usage: uv run --with mapbox-vector-tile python scripts/conformance.py [--fuzz N] [SOURCE ZOOM [MAX_TILES]] ...
@@ -163,6 +166,71 @@ def tileset(source: str, zoom: int, limit: int) -> bool:
     return diff.report(f"{source} z{zoom}")
 
 
+def writer(n: int) -> bool:
+    """Write random features with our encoder; mapbox-vector-tile must read every tile like we do."""
+    import numpy as np
+    import pyarrow as pa
+
+    from mvt_worker.write_tiles import WriteArgs, collect, resolve_roles, write_archive
+
+    rng = np.random.default_rng(11)
+    lon = rng.uniform(-20, 40, n)
+    lat = rng.uniform(30, 65, n)
+    kinds = rng.integers(0, 3, n)
+    geoms = []
+    for i in range(n):
+        x, y = lon[i], lat[i]
+        if kinds[i] == 0:
+            geoms.append(shapely.Point(x, y))
+        elif kinds[i] == 1:
+            pts = np.column_stack([x + np.cumsum(rng.normal(0, 0.3, 8)), y + np.cumsum(rng.normal(0, 0.3, 8))])
+            geoms.append(shapely.LineString(pts))
+        else:
+            outer = shapely.Point(x, y).buffer(rng.uniform(0.05, 2.0), quad_segs=int(rng.integers(2, 12)))
+            hole = shapely.Point(x, y).buffer(rng.uniform(0.01, 0.04))
+            geoms.append(outer.difference(hole) if rng.random() < 0.5 else outer)
+    meta = {b"ARROW:extension:name": b"geoarrow.wkb", b"ARROW:extension:metadata": b'{"crs":"OGC:CRS84"}'}
+    batch = pa.RecordBatch.from_arrays(
+        [
+            pa.array(np.array(["points", "lines", "polygons"])[kinds].tolist()),
+            pa.array(np.arange(n, dtype=np.uint64)),
+            pa.array([f"f{i}" for i in range(n)]),
+            pa.array(rng.integers(-(10**12), 10**12, n)),
+            pa.array(rng.random(n) < 0.5),
+            pa.array(shapely.to_wkb(np.array(geoms, dtype=object)).tolist(), pa.binary()),
+        ],
+        schema=pa.schema(
+            [
+                pa.field("layer", pa.string()),
+                pa.field("feature_id", pa.uint64()),
+                pa.field("name", pa.string()),
+                pa.field("big", pa.int64()),
+                pa.field("flag", pa.bool_()),
+                pa.field("geometry", pa.binary(), metadata=meta),
+            ]
+        ),
+    )
+    options = WriteArgs(maxzoom=8, max_tile_bytes=0)
+    out = CACHE.parent / "writer-check.pmtiles"
+    start = time.perf_counter()
+    write_archive(str(out), collect([batch], resolve_roles(batch.schema, options), options, "x"), options, "x")
+    took = time.perf_counter() - start
+    src = open_source(str(out))
+    diff = Diff()
+    invalid = 0
+    for z in range(0, 9):
+        for key, data in src.fetch(src.tiles(z, None, 10_000_000)):
+            diff.tile(f"{key}", key, data)
+            for lay in mapbox_vector_tile.decode(maybe_decompress(data), default_options={"y_coord_down": True}).values():
+                for f in lay["features"]:
+                    g = f.get("geometry") or {}
+                    if g.get("type", "").endswith("Polygon") and not shape(g).is_valid:
+                        invalid += 1
+    out.unlink()
+    print(f"writer: {n} features to z8 in {took:.1f}s, invalid polygons {invalid}")
+    return diff.report("writer round trip (mapbox-vector-tile vs ours)") and invalid == 0 and diff.stats["tiles"] > 0
+
+
 def fuzz(root: Path, n: int) -> bool:
     seeds = [maybe_decompress(p.read_bytes()) for p in sorted((root / "fixtures").glob("0[1-6]*/tile.mvt"))]
     seeds += [maybe_decompress(p.read_bytes()) for p in sorted((root / "real-world").rglob("*.mvt*"))[:8]]
@@ -204,6 +272,7 @@ def fuzz(root: Path, n: int) -> bool:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--fuzz", type=int, default=20000, help="mutated tiles to decode (default 20000)")
+    ap.add_argument("--writer", type=int, default=3000, help="random features for the writer check (default 3000)")
     ap.add_argument("tilesets", nargs="*", help="SOURCE ZOOM [MAX_TILES] groups")
     args = ap.parse_args()
     root = fetch_fixtures()
@@ -215,6 +284,7 @@ def main() -> int:
         limit = int(rest[2]) if len(rest) > 2 and rest[2].isdigit() else 200
         rest = rest[3:] if len(rest) > 2 and rest[2].isdigit() else rest[2:]
         ok = tileset(source, zoom, limit) and ok
+    ok = writer(args.writer) and ok
     ok = fuzz(root, args.fuzz) and ok
     print("PASS" if ok else "FAIL")
     return 0 if ok else 1

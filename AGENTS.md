@@ -30,6 +30,10 @@ src/mvt_worker/
   layers.py        # tileset_layers, tileset_metadata
   pushdown.py      # pushed `geometry && <constant>` hint -> bbox for tile selection
   edges.py         # tile_edges: owned points, clip to tile, join pieces across tiles (shapely)
+  write_tiles.py   # COPY ... TO (FORMAT 'mvt.pmtiles'): column roles, attributes, zoom loop
+  tiler.py         # project, simplify, quadtree-clip and snap geometries per zoom (vectorised)
+  encode.py        # MVT encoder: layers/keys/values, vectorised geometry commands
+  archive.py       # PMTiles v3 archive writer (clustered, dedup, atomic rename)
   catalog.py       # ATTACH ... tileset '...': one table per layer (catalog hooks see only
                    #   attach_opaque_data, so the tileset settings are encoded there)
   worker.py        # assembles the catalog; add new functions to FUNCTIONS
@@ -40,7 +44,7 @@ test/fixtures/     # committed tilesets; regenerate with scripts/make_fixtures.s
 test/tile_server.py  # range-capable static server for the offline HTTP tests
 examples/          # starter recipes: pushdown, caching, catalog tables, aggregates, COPY …
 ci/                # integration harness used by `make test-sql` and CI
-scripts/           # vgi_template.py (template-diff), make_fixtures.sh, conformance.py (make conformance)
+scripts/           # vgi_template.py (template-diff), make_fixtures.sh, conformance.py (decoder + writer; make conformance)
 vgi-agent-tests.yaml  # private graders for the agent test tasks
 ```
 
@@ -51,6 +55,12 @@ that rows equal distinct `feature_id`s and that the area and length sums equal `
 After any change to `mvt.py` or `sources.py`, run `make conformance`: Mapbox's mvt-fixtures,
 a feature-by-feature diff against mapbox-vector-tile, and a fuzz run. Only `MvtDecodeError`
 (or `TileSourceError`) may escape the decoder.
+
+The writer (`write_tiles.py`, `tiler.py`, `encode.py`, `archive.py`) has its own checks:
+`encode_pieces` (vectorised) must produce the same bytes as `geometry_commands` (the
+readable reference; `tests/test_write.py` compares them on random geometries), and
+`make conformance` has mapbox-vector-tile read every tile the writer produces. Run both
+after changing any of those files.
 
 ## Recipe: add a function
 

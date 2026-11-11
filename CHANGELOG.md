@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.2.0 (unreleased)
+
+Write vector tilesets: `COPY (SELECT ...) TO 'out.pmtiles' (FORMAT 'mvt.pmtiles')`.
+
+- One row per feature; a `layer` column writes several layers in one COPY. `feature_id`
+  becomes the id, a `properties` column of JSON objects is expanded, other columns become
+  typed attributes, so `read_tiles` output writes back.
+- Clip with a buffer, per-zoom simplification, snapping to the tile grid with validity repair,
+  MVT 2.1 winding; per-feature zoom ranges (`minzoom_column`, `maxzoom_column`).
+- Clustered PMTiles v3 with `vector_layers` metadata, identical tiles stored once, written to a
+  temporary file and renamed into place. Fails with the tile's address rather than drop
+  features when a tile passes `max_tile_bytes`.
+- `make conformance` also checks the writer: mapbox-vector-tile must read every written tile
+  exactly like this worker's decoder, and every polygon must be valid.
+
 ## 0.1.0 (2026-11-10)
 
 First release: decode Mapbox Vector Tiles from PMTiles (local or HTTP range), MBTiles,

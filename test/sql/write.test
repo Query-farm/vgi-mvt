@@ -1,0 +1,156 @@
+# name: test/sql/write.test
+# description: COPY ... TO (FORMAT 'mvt.pmtiles'): write a multi-layer vector tileset and read it back
+# group: [mvt]
+
+require vgi
+
+require-env MVT_WORKER
+
+require-env MVT_FIXTURES
+
+require-env MVT_OUT
+
+statement ok
+LOAD spatial;
+
+statement ok
+ATTACH 'mvt' (TYPE vgi, LOCATION '{MVT_WORKER}');
+
+# The writer is advertised as a COPY TO format of the attached catalog.
+query TT
+SELECT DISTINCT format_name, direction FROM vgi_copy_formats() WHERE catalog_name = 'mvt';
+----
+mvt.pmtiles	to
+
+statement ok
+CREATE TABLE cities AS SELECT * FROM (VALUES
+    (1, 'Rome', 2800000, true, 12.4964, 41.9028),
+    (2, 'Paris', 2100000, true, 2.3522, 48.8566),
+    (3, 'Milan', 1400000, false, 9.19, 45.4642)
+) t(feature_id, name, population, capital, lon, lat);
+
+# ---------------------------------------------------------------- several layers in one COPY
+
+query I
+COPY (
+    SELECT 'cities' AS layer, feature_id, name, population, capital, ST_Point(lon, lat) AS geometry FROM cities
+    UNION ALL BY NAME
+    SELECT 'regions' AS layer, 10 AS feature_id, 'box' AS name, ST_MakeEnvelope(2, 41, 13, 49) AS geometry
+    UNION ALL BY NAME
+    SELECT 'routes' AS layer, 20 AS feature_id, 'Paris-Rome' AS name,
+           ST_MakeLine(ST_Point(2.3522, 48.8566), ST_Point(12.4964, 41.9028)) AS geometry
+) TO '{MVT_OUT}/europe.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 8, name 'Europe', attribution 'test data');
+----
+5
+
+query TTTII
+SELECT layer, field, type, minzoom, maxzoom FROM mvt.main.tileset_layers('{MVT_OUT}/europe.pmtiles')
+ORDER BY layer, field;
+----
+cities	capital	Boolean	0	8
+cities	name	String	0	8
+cities	population	Number	0	8
+regions	name	String	0	8
+routes	name	String	0	8
+
+query TT
+SELECT key, value FROM mvt.main.tileset_metadata('{MVT_OUT}/europe.pmtiles')
+WHERE key IN ('name', 'attribution', 'minzoom', 'maxzoom', 'generator') ORDER BY key;
+----
+attribution	test data
+generator	vgi-mvt
+maxzoom	8
+minzoom	0
+name	Europe
+
+# Typed columns come back from the attached tileset; points are snapped to the z8 grid.
+query ITITRR
+SELECT feature_id, name, population, capital, round(ST_X(geometry), 2), round(ST_Y(geometry), 2)
+FROM mvt.main.read_tiles('{MVT_OUT}/europe.pmtiles', zoom := 8, layer := 'cities') ORDER BY feature_id;
+----
+1	Rome	2800000	true	12.5	41.9
+2	Paris	2100000	true	2.35	48.86
+3	Milan	1400000	false	9.19	45.46
+
+# One row per feature again after merging the tile pieces; the box keeps its area.
+query TIIR
+SELECT layer, count(*), count(DISTINCT feature_id), round(sum(ST_Area(geometry)), 1)
+FROM mvt.main.read_tiles('{MVT_OUT}/europe.pmtiles', zoom := 6) GROUP BY layer ORDER BY layer;
+----
+cities	3	3	0.0
+regions	1	1	88.0
+routes	1	1	0.0
+
+# ---------------------------------------------------------------- read_tiles output writes back
+
+query I
+COPY (SELECT layer, feature_id, properties, geometry FROM mvt.main.read_tiles('{MVT_FIXTURES}/sample.pmtiles'))
+TO '{MVT_OUT}/again.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 4);
+----
+6
+
+query TT
+SELECT layer, list(field ORDER BY field) FROM mvt.main.tileset_layers('{MVT_OUT}/again.pmtiles') GROUP BY layer ORDER BY layer;
+----
+cities	[capital, name, population]
+regions	[area_rank, code, label]
+
+# Every feature comes back with the same attributes (the fixture's features have no ids).
+query TI
+SELECT layer, count(*)
+FROM mvt.main.read_tiles('{MVT_FIXTURES}/sample.pmtiles') a
+JOIN mvt.main.read_tiles('{MVT_OUT}/again.pmtiles', zoom := 4) b USING (layer, properties)
+GROUP BY layer ORDER BY layer;
+----
+cities	4
+regions	2
+
+# ---------------------------------------------------------------- per-feature zoom ranges
+
+statement ok
+COPY (SELECT name, CASE WHEN capital THEN 0 ELSE 5 END AS minz, ST_Point(lon, lat) AS geometry FROM cities)
+TO '{MVT_OUT}/zooms.pmtiles' (FORMAT 'mvt.pmtiles', layer 'places', maxzoom 6, minzoom_column 'minz');
+
+query IT
+SELECT z, string_agg(name, ',' ORDER BY name)
+FROM (SELECT * FROM mvt.main.read_tiles('{MVT_OUT}/zooms.pmtiles', zoom := 4, layer := 'places')
+      UNION ALL SELECT * FROM mvt.main.read_tiles('{MVT_OUT}/zooms.pmtiles', zoom := 5, layer := 'places'))
+GROUP BY z ORDER BY z;
+----
+4	Paris,Rome
+5	Milan,Paris,Rome
+
+# ---------------------------------------------------------------- an empty COPY still writes a tileset
+
+query I
+COPY (SELECT name, ST_Point(lon, lat) AS geometry FROM cities WHERE false)
+TO '{MVT_OUT}/empty.pmtiles' (FORMAT 'mvt.pmtiles');
+----
+0
+
+query I
+SELECT count(*) FROM mvt.main.read_tiles('{MVT_OUT}/empty.pmtiles');
+----
+0
+
+# ---------------------------------------------------------------- refusals
+
+statement error
+COPY (SELECT name FROM cities) TO '{MVT_OUT}/bad.pmtiles' (FORMAT 'mvt.pmtiles');
+----
+<REGEX>:.*no GEOMETRY column.*
+
+statement error
+COPY (SELECT name, ST_Point(lon, lat) AS geometry FROM cities) TO '{MVT_OUT}/bad.pmtiles' (FORMAT 'mvt.pmtiles', minzoom 9, maxzoom 3);
+----
+<REGEX>:.*minzoom.*greater than maxzoom.*
+
+statement error
+COPY (SELECT ST_Point(lon * 100000, lat * 100000) AS geometry FROM cities) TO '{MVT_OUT}/bad.pmtiles' (FORMAT 'mvt.pmtiles');
+----
+<REGEX>:.*outside lon/lat range.*
+
+statement error
+COPY (SELECT ST_Point(lon, lat) AS geometry FROM cities) TO '{MVT_OUT}/bad.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 99);
+----
+<REGEX>:.*maxzoom.*

@@ -77,6 +77,10 @@ start_server "$STAGE/tiles.log" $PYTHON "$REPO/test/tile_server.py"
 export MVT_TILE_SERVER="http://127.0.0.1:$PORT"
 # Absolute fixture directory: the worker's working directory is the staging dir.
 export MVT_FIXTURES="$REPO/test/fixtures"
+# Absolute directory for the tilesets COPY ... TO writes: the worker (a separate server
+# process over HTTP) resolves paths itself, so a relative __TEST_DIR__ path won't do.
+export MVT_OUT="$STAGE/out"
+rm -rf "$MVT_OUT" && mkdir -p "$MVT_OUT"
 
 HTTP=0
 case "$TRANSPORT" in

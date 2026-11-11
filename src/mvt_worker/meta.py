@@ -38,6 +38,11 @@ SCHEMA_CATEGORIES = [
         "title": "Tileset Metadata",
         "description": "Table functions that describe a tileset: layers, attributes, zoom range and bounds.",
     },
+    {
+        "name": "writers",
+        "title": "Tileset Writers",
+        "description": "COPY ... TO formats that encode query results as vector tilesets.",
+    },
 ]
 
 
@@ -84,7 +89,9 @@ CATALOG_DOC_LLM = (
     "options. Read the tileset metadata first to learn its zoom "
     "range, layers and attributes. Geometry is quantised to the tile grid. Tilesets store a feature "
     "once per tile it touches; the tileset readers join those pieces back into one row per feature "
-    "by default (`tile_edges`), while the single-tile decoders return each tile as stored."
+    "by default (`tile_edges`), while the single-tile decoders return each tile as stored. The "
+    "other direction is a COPY TO format: FORMAT 'mvt.pmtiles' encodes a query's rows (one "
+    "`GEOMETRY` per row, a `layer` column for several layers) as a new PMTiles tileset."
 )
 
 CATALOG_DOC_MD = (
@@ -149,6 +156,13 @@ AGENT_TEST_TASKS = [
         "prompt": (
             "Read the raw rows of the 'tiles' table of test/fixtures/sample.mbtiles at zoom 2 with DuckDB's "
             "sqlite extension and decode them with the mvt worker. How many features come out?"
+        ),
+    },
+    {
+        "name": "write_cities_layer",
+        "prompt": (
+            "Write only the 'cities' layer of test/fixtures/sample.pmtiles into a new PMTiles vector tileset "
+            "named cities-only.pmtiles in the working directory, with zoom levels 0 through 6."
         ),
     },
 ]

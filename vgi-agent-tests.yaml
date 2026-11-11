@@ -25,3 +25,10 @@ tasks:
       SELECT count(*) AS features FROM mvt.main.mvt_decode((
         SELECT tile_data AS tile, zoom_level AS z, tile_column AS x, (1 << zoom_level) - 1 - tile_row AS y
         FROM sqlite_scan('test/fixtures/sample.mbtiles', 'tiles') WHERE zoom_level = 2))
+  - name: write_cities_layer
+    # Graded on the tileset the agent wrote: one layer, the four cities, zoom 0-6.
+    check_sql: >-
+      SELECT count(*) = 4 AND min(layer) = 'cities' AND max(layer) = 'cities'
+        AND (SELECT value FROM mvt.main.tileset_metadata('cities-only.pmtiles') WHERE key = 'maxzoom') = '6'
+        AND (SELECT value FROM mvt.main.tileset_metadata('cities-only.pmtiles') WHERE key = 'minzoom') = '0'
+      FROM mvt.main.read_tiles('cities-only.pmtiles', zoom := 6)

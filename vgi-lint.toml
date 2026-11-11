@@ -22,3 +22,10 @@ ignore = [
 #   vgi-lint lint --baseline vgi-lint-baseline --update-baseline
 # and uncomment the next line. Only new findings fail after that.
 # baseline = "vgi-lint-baseline"
+
+# write_pmtiles is a COPY ... TO format: SQL reaches it through FORMAT 'mvt.pmtiles' and can
+# never call it by name, so its examples (COPY statements) can't name it either.
+[per_object."mvt.main.write_pmtiles"]
+ignore = [
+  { code = "VGI504", kind = "domain-exemption", reason = "a COPY TO format is used via FORMAT 'mvt.pmtiles', never called by name" },
+]

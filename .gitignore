@@ -10,3 +10,6 @@ build/
 *.egg-info/
 .DS_Store
 .cache/
+
+# tilesets written by vgi-lint running the COPY examples
+/*.pmtiles

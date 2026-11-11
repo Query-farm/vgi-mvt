@@ -36,8 +36,9 @@ from .meta import (
     keywords_array,
 )
 from .read_tiles import DEFAULT_MAX_TILES, ReadMvt, ReadTiles
+from .write_tiles import WritePmtiles
 
-FUNCTIONS: list[type[Any]] = [ReadTiles, ReadMvt, MvtDecode, TilesetLayers, TilesetMetadata]
+FUNCTIONS: list[type[Any]] = [ReadTiles, ReadMvt, MvtDecode, TilesetLayers, TilesetMetadata, WritePmtiles]
 
 
 def _stamp_example_queries(functions: list[type[Any]]) -> list[dict[str, str]]:

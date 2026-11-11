@@ -41,7 +41,7 @@ from .mvt import MAX_TILE_BYTES, MvtDecodeError, maybe_decompress, read_varint, 
 
 log = logging.getLogger(__name__)
 
-USER_AGENT = "vgi-mvt/0.1 (+https://github.com/Query-farm/vgi-mvt)"
+USER_AGENT = "vgi-mvt/0.2 (+https://github.com/Query-farm/vgi-mvt)"
 HTTP_TIMEOUT = 30.0
 HTTP_RETRIES = 4
 FETCH_THREADS = 8
