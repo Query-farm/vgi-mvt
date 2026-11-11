@@ -46,7 +46,11 @@ TILE_EDGE_CHOICES: tuple[TileEdges, ...] = ("merge", "clip", "raw")
 
 REF = 1 << 16  # global grid units per tile: exact for every power-of-two extent up to 65536
 _HALF_CIRCUMFERENCE = math.pi * 6378137.0
-_NEIGHBOUR_CACHE = 256
+# Decoded neighbour tiles are cached by estimated size, not count: a walk along one long
+# feature touches up to a few hundred tiles, and consecutive walks head in unrelated
+# directions, so a count limit below the tiles in the read makes every walk re-decode
+# tiles it evicted a moment ago (2,000 random lines over 653 tiles: >10 min instead of 3 s).
+CACHE_BYTES = 256 << 20
 _PREFETCH = 32  # extra tiles fetched with each neighbour load
 EDGE_MARGIN = 16  # a feature within extent/16 of an edge (256 px of 4096) may continue in the next tile
 
@@ -256,6 +260,13 @@ class _TilePieces:
     rows: list[Row] | None  # finished rows, kept until the tile's own turn so it is decoded once
 
 
+def _estimate(tp: _TilePieces) -> int:
+    """Rough bytes held by a cached tile: its pieces' coordinates plus per-object overhead."""
+    coords = int(shapely.get_num_coordinates([p.geom for p in tp.pieces]).sum()) if tp.pieces else 0
+    rows = sum(len(r[3] or b"") for r in tp.rows) if tp.rows else 0
+    return 16 * coords + 400 * len(tp.pieces) + rows + 200 * len(tp.rows or ()) + 1000
+
+
 def _index(pieces: list[Piece], rows: list[Row] | None) -> _TilePieces:
     by_key: dict[EdgeKey, list[int]] = {}
     for i, p in enumerate(pieces):
@@ -309,6 +320,14 @@ class EdgeAssembler:
         self.mode = mode
         self.done: set[Node] = set()
         self._tiles: OrderedDict[TileKey, _TilePieces] = OrderedDict()
+        # Pieces of each seen tile not yet written by this process, and the tiles where that is
+        # none: nothing in a finished tile can link to a piece still being grouped (a link puts
+        # both in one group, and that group was written), so walks skip finished tiles without
+        # loading them, and the cache evicts them first. Eviction only ever costs a re-decode.
+        self._remaining: dict[TileKey, int] = {}
+        self._finished: set[TileKey] = set()
+        self._sizes: dict[TileKey, int] = {}
+        self._cached_bytes = 0
         self.lock = threading.Lock()
 
     def add_tile(self, rows: RowBuilder, key: TileKey, data: bytes) -> None:
@@ -336,8 +355,9 @@ class EdgeAssembler:
             group = self._group((key, i))
             if group is None:
                 continue
-            self.done.update(group)
-            joined = join_pieces([self._tile(t).pieces[j].geom for t, j in group], p.dim)
+            geoms = [self._tile(t).pieces[j].geom for t, j in group]
+            self._mark_done(group)  # after collecting: finished tiles become evictable
+            joined = join_pieces(geoms, p.dim)
             if joined is not None:
                 self._write(rows, key, p, joined)
 
@@ -367,11 +387,18 @@ class EdgeAssembler:
             if p.fid is not None:
                 links += [(tile, j) for j in self._tile(tile).by_key.get(k, ())]
             z, x, y = tile
-            self._load([(z, x + dx, y + dy) for dx in (-1, 0, 1) for dy in (-1, 0, 1)])
+            self._load(
+                [
+                    (z, x + dx, y + dy)
+                    for dx in (-1, 0, 1)
+                    for dy in (-1, 0, 1)
+                    if (z, x + dx, y + dy) not in self._finished
+                ]
+            )
             for dx in (-1, 0, 1):
                 for dy in (-1, 0, 1):
                     n = (z, x + dx, y + dy)
-                    if (dx == dy == 0) or n not in self.order:
+                    if (dx == dy == 0) or n not in self.order or n in self._finished:
                         continue
                     other = self._tile(n)
                     for j in other.by_key.get(k, ()):
@@ -387,12 +414,38 @@ class EdgeAssembler:
         return found
 
     def _remember(self, key: TileKey, pieces: _TilePieces) -> None:
+        if key in self._tiles:
+            self._cached_bytes -= self._sizes.get(key, 0)
         self._tiles[key] = pieces
         self._tiles.move_to_end(key)
-        while len(self._tiles) > _NEIGHBOUR_CACHE:
-            self._tiles.popitem(last=False)
+        size = _estimate(pieces)
+        self._sizes[key] = size
+        self._cached_bytes += size
+        if key not in self._remaining:
+            left = sum(1 for i in range(len(pieces.pieces)) if (key, i) not in self.done)
+            self._remaining[key] = left
+            if not left:
+                self._finished.add(key)
+        while self._cached_bytes > CACHE_BYTES and len(self._tiles) > 1:
+            # finished tiles first (oldest first), then least recently used
+            drop = next((k for k in self._tiles if k in self._finished and k != key), None)
+            if drop is None:
+                drop = next(iter(self._tiles))
+            del self._tiles[drop]
+            self._cached_bytes -= self._sizes.pop(drop, 0)
 
-    def _load(self, keys: list[TileKey]) -> None:
+    def _mark_done(self, nodes: list[Node]) -> None:
+        for node in nodes:
+            if node in self.done:
+                continue
+            self.done.add(node)
+            tile = node[0]
+            left = self._remaining.get(tile, 0) - 1
+            self._remaining[tile] = left
+            if left <= 0:
+                self._finished.add(tile)
+
+    def _load(self, keys: list[TileKey], *, prefetch: bool = True) -> None:
         """Fetch and split the tiles of ``keys`` (in the read list, not cached yet) in one round trip."""
         missing = [k for k in keys if k in self.order and k not in self._tiles]
         if not missing:
@@ -401,7 +454,7 @@ class EdgeAssembler:
         # same round trip (remote PMTiles coalesces neighbouring tiles into one request).
         nxt = max(self.order[k] for k in missing) + 1
         want = set(missing)
-        for k in self.keys[nxt : nxt + _PREFETCH]:
+        for k in self.keys[nxt : nxt + (_PREFETCH if prefetch else 0)]:
             if k not in self._tiles and k not in want:
                 missing.append(k)
                 want.add(k)
@@ -418,6 +471,9 @@ class EdgeAssembler:
         hit = self._tiles.get(key)
         if hit is None:
             self._load([key])
+            hit = self._tiles.get(key)
+        if hit is None:  # the prefetch that came with it pushed it out again
+            self._load([key], prefetch=False)
             hit = self._tiles.get(key) or _index([], None)
         if key in self._tiles:
             self._tiles.move_to_end(key)

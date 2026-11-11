@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.1 (2026-11-11)
+
+- `tile_edges := 'merge'` no longer slows to a crawl on long lines spread over many tiles.
+  Decoded neighbour tiles were cached by count (256), and once a read covered more tiles
+  than that, each feature's walk re-decoded tiles the previous walk had evicted: 2,000
+  random lines over 653 tiles took over 10 minutes instead of 3 s. The cache is now sized
+  by memory (256 MiB of decoded pieces), skips tiles whose pieces are all written, and
+  evicts those first. Each tile is decoded once unless a read's pieces exceed the budget.
+
 ## 0.2.0 (2026-11-11)
 
 Write vector tilesets: `COPY (SELECT ...) TO 'out.pmtiles' (FORMAT 'mvt.pmtiles')`.

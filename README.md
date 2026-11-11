@@ -228,7 +228,8 @@ they're fetched in one range request over a kept-alive connection.
 Reading 6,776 Overture POI tiles (about 590k features) over the internet takes about 45 s
 in-process and 70 s through DuckDB, with about 200 MiB of worker memory. The default `merge`
 mode costs about the same as `raw` on points. On the full US ZIP code archive at z7
-(320 tiles of complex polygons), `merge` takes 12 s against 5 s for `raw`.
+(320 tiles of complex polygons), `merge` takes 12 s against 5 s for `raw`. Each tile is decoded once
+while the read's decoded pieces fit in 256 MiB (lines over 9,538 tiles took about 50 MiB).
 
 Writing is single-process Python with the geometry work done on whole arrays per zoom. Through
 DuckDB, 1M points take 70 s to z10 (146 MB archive) and 85 s to z12 (198 MB); 104k mixed
@@ -324,7 +325,7 @@ SELECT layer, count(*) FROM mvt.main.read_tiles('/abs/path/to/vgi-mvt/test/fixtu
 Or attach it from **Haybarn 2.0** (`uvx haybarn-cli`): `INSTALL vgi FROM community; LOAD vgi;`, then use the same `ATTACH`.
 
 Once a release is tagged, you can run it without cloning:
-`LOCATION 'uvx --from git+https://github.com/Query-farm/vgi-mvt@v0.2.0 vgi-mvt-worker'`.
+`LOCATION 'uvx --from git+https://github.com/Query-farm/vgi-mvt@v0.2.1 vgi-mvt-worker'`.
 
 ## Development
 

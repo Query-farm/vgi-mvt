@@ -312,3 +312,49 @@ def test_rewrite_a_tileset_that_was_read(tmp_path: Path) -> None:
     again = write(tmp_path, [batch([shapely.Point(10, 10)], name=["new"])], maxzoom=0)
     os.utime(again, ns=(time.time_ns(), time.time_ns() + 1_000_000))  # distinct mtime on coarse clocks
     assert [f.properties["name"] for t in tiles(again, 0).values() for f in t[0].features] == ["new"]
+
+
+def test_merging_long_lines_decodes_each_tile_once(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # Long lines heading in all directions over more tiles than a count-limited cache held
+    # made every walk re-decode tiles it had just evicted (minutes instead of seconds).
+    import mvt_worker.edges as edges_mod
+    from mvt_worker.rows import RowBuilder, output_schema
+
+    rng = random.Random(5)
+    lines = [shapely.LineString([(rng.uniform(-10, 20), rng.uniform(35, 60)) for _ in range(3)]) for _ in range(150)]
+    real = edges_mod.split_tile
+    budget = edges_mod.CACHE_BYTES
+
+    def archive(n: int) -> tuple[Any, list[Any]]:
+        b = batch(lines[:n], feature_id=pa.array(range(n), pa.uint64()))
+        src = open_source(str(write(tmp_path, [b], f"l{n}.pmtiles", minzoom=8, maxzoom=8)))
+        return src, src.tiles(8, None, 100_000)
+
+    def merged(src: Any, keys: list[Any], cache_bytes: int) -> tuple[int, list[tuple[Any, ...]]]:
+        monkeypatch.setattr(edges_mod, "CACHE_BYTES", cache_bytes)
+        decodes = 0
+
+        def counting(*a: Any, **k: Any) -> Any:
+            nonlocal decodes
+            decodes += 1
+            return real(*a, **k)
+
+        monkeypatch.setattr(edges_mod, "split_tile", counting)
+        asm = edges_mod.EdgeAssembler(src, keys, layer_filter=None, coordinates="wgs84", mode="merge")
+        rows = RowBuilder(output_schema(None, "wgs84"), "wgs84", None)
+        for k, data in src.fetch(keys):
+            asm.add_tile(rows, k, data)
+        t = rows.take()
+        return decodes, sorted(zip(t["feature_id"].to_pylist(), t["geometry"].to_pylist(), strict=True))
+
+    src, keys = archive(150)
+    assert len(keys) > 256
+    decodes, rows = merged(src, keys, budget)
+    assert decodes == len(keys)
+    assert [fid for fid, _ in rows] == list(range(150))
+    # Evicting under a tiny budget re-decodes tiles but must give exactly the same rows.
+    src, keys = archive(20)
+    _, full = merged(src, keys, budget)
+    decodes, small = merged(src, keys, 64 << 10)
+    assert decodes > len(keys)
+    assert small == full
