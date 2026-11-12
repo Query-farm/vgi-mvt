@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0 (2026-11-12)
+
+- Speaks VGI protocol 3.3 (vgi-python `>=0.51.0,<0.52`). The vgi DuckDB extension matches
+  the protocol's major and minor version exactly, so the current extension refuses 0.2.x
+  workers and this release needs the current extension. The SQL surface is unchanged.
+
 ## 0.2.2 (2026-11-11)
 
 - Written archives get normal file permissions (0666 minus the umask, or those of the file
