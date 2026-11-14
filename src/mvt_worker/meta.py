@@ -165,6 +165,14 @@ AGENT_TEST_TASKS = [
             "named cities-only.pmtiles in the working directory, with zoom levels 0 through 6."
         ),
     },
+    {
+        "name": "roads_crossing_areas",
+        "prompt": (
+            "Using the mvt worker, which roads in the 'roads' layer of test/fixtures/edges.pmtiles cross or touch "
+            "a polygon of the 'areas' layer of the same tileset? Return one row per road and area, with VARCHAR "
+            "columns road (the road's name) and area (the area's name), ordered by road then area."
+        ),
+    },
 ]
 
 CATALOG_TAGS = {

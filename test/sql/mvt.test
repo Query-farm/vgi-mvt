@@ -274,3 +274,53 @@ statement error
 SELECT * FROM mvt.main.read_tiles('{MVT_FIXTURES}/sample.pmtiles', coordinates := 'lambert');
 ----
 <REGEX>:.*
+
+# ---------------------------------------------------------------- composed queries (published examples)
+
+# Point-in-polygon join of two layers: only Milan lies inside a region.
+query TT
+SELECT c.name AS city, r.label AS region
+FROM mvt.main.read_tiles('{MVT_FIXTURES}/sample.pmtiles', layer := 'cities') AS c
+LEFT JOIN mvt.main.read_tiles('{MVT_FIXTURES}/sample.pmtiles', layer := 'regions') AS r
+  ON ST_Within(c.geometry, r.geometry)
+ORDER BY city;
+----
+Berlin	NULL
+Milan	Square with a hole
+Paris	NULL
+Vienna	NULL
+
+# Declared attributes (tileset_layers) against the decoded features (read_tiles).
+query TTII
+SELECT l.layer, l.field, count(*) AS features, count(*) FILTER (WHERE t.properties ->> l.field IS NOT NULL) AS with_field
+FROM mvt.main.tileset_layers('{MVT_FIXTURES}/sample.pmtiles') AS l
+JOIN mvt.main.read_tiles('{MVT_FIXTURES}/sample.pmtiles') AS t USING (layer)
+GROUP BY ALL ORDER BY ALL;
+----
+cities	capital	4	4
+cities	name	4	4
+cities	population	4	4
+regions	area_rank	2	2
+regions	code	2	2
+regions	label	2	2
+
+# tilestats feature counts (tileset_metadata) against the decoded features (read_tiles).
+query TII
+SELECT s.layer, s.count AS declared, count(t.layer) AS decoded
+FROM (SELECT unnest(from_json(value -> 'layers', '[{"layer": "VARCHAR", "count": "BIGINT"}]'), recursive := true)
+      FROM mvt.main.tileset_metadata('{MVT_FIXTURES}/sample.pmtiles') WHERE key = 'tilestats') AS s
+LEFT JOIN mvt.main.read_tiles('{MVT_FIXTURES}/sample.pmtiles') AS t USING (layer)
+GROUP BY ALL ORDER BY ALL;
+----
+cities	4	4
+regions	2	2
+
+# Roads crossing area polygons (the roads_crossing_areas agent task).
+query TT
+SELECT r.name AS road, a.name AS area
+FROM mvt.main.read_tiles('{MVT_FIXTURES}/edges.pmtiles', layer := 'roads') AS r
+JOIN mvt.main.read_tiles('{MVT_FIXTURES}/edges.pmtiles', layer := 'areas') AS a
+  ON ST_Intersects(r.geometry, a.geometry)
+ORDER BY road, area;
+----
+Diagonal	Four tiles

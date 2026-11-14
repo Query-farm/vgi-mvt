@@ -21,6 +21,29 @@ from vgi_rpc import ArrowSerializableDataclass
 from .meta import FIRENZE_PMTILES, ZCTA_PMTILES, column, object_tags
 from .sources import TilesetInfo, TileSourceError, open_source
 
+# Composed examples: each checks a tileset's declared metadata against the features read_tiles
+# actually decodes from the same fixture.
+ATTRIBUTE_COVERAGE_SQL = (
+    "SELECT l.layer, l.field, count(*) AS features, "
+    "count(*) FILTER (WHERE t.properties ->> l.field IS NOT NULL) AS with_field "
+    "FROM mvt.main.tileset_layers('test/fixtures/sample.pmtiles') AS l "
+    "JOIN mvt.main.read_tiles('test/fixtures/sample.pmtiles') AS t USING (layer) "
+    "GROUP BY ALL ORDER BY ALL"
+)
+ATTRIBUTE_COVERAGE_DESCRIPTION = (
+    "Check each declared attribute against the decoded features: how many of its layer's features carry it"
+)
+TILESTATS_CHECK_SQL = (
+    "SELECT s.layer, s.count AS declared, count(t.layer) AS decoded "
+    'FROM (SELECT unnest(from_json(value -> \'layers\', \'[{"layer": "VARCHAR", "count": "BIGINT"}]\'), '
+    "recursive := true) FROM mvt.main.tileset_metadata('test/fixtures/sample.pmtiles') WHERE key = 'tilestats') AS s "
+    "LEFT JOIN mvt.main.read_tiles('test/fixtures/sample.pmtiles') AS t USING (layer) "
+    "GROUP BY ALL ORDER BY ALL"
+)
+TILESTATS_CHECK_DESCRIPTION = (
+    "Compare each layer's feature count in the tilestats metadata with the features read_tiles decodes at max zoom"
+)
+
 _SOURCE_DOC = "Tileset: a .pmtiles file or http(s) URL, or a local .mbtiles file."
 
 
@@ -107,6 +130,18 @@ class TilesetLayers(TableFunctionGenerator[SourceArgs, Once]):
                         ),
                         "expected_result": [["capital", "Boolean"], ["name", "String"], ["population", "Number"]],
                     },
+                    {
+                        "description": ATTRIBUTE_COVERAGE_DESCRIPTION,
+                        "sql": ATTRIBUTE_COVERAGE_SQL,
+                        "expected_result": [
+                            ["cities", "capital", 4, 4],
+                            ["cities", "name", 4, 4],
+                            ["cities", "population", 4, 4],
+                            ["regions", "area_rank", 2, 2],
+                            ["regions", "code", 2, 2],
+                            ["regions", "label", 2, 2],
+                        ],
+                    },
                 ]
             ),
         }
@@ -120,6 +155,7 @@ class TilesetLayers(TableFunctionGenerator[SourceArgs, Once]):
                 ),
                 description="Attribute names of each layer of the fixture MBTiles",
             ),
+            FunctionExample(sql=ATTRIBUTE_COVERAGE_SQL, description=ATTRIBUTE_COVERAGE_DESCRIPTION),
             FunctionExample(
                 sql=(
                     "SELECT layer, count(field) AS attributes FROM mvt.main.tileset_layers("
@@ -229,6 +265,11 @@ class TilesetMetadata(TableFunctionGenerator[SourceArgs, Once]):
                         ),
                         "expected_result": [["format", "mbtiles"], ["maxzoom", "3"], ["minzoom", "0"]],
                     },
+                    {
+                        "description": TILESTATS_CHECK_DESCRIPTION,
+                        "sql": TILESTATS_CHECK_SQL,
+                        "expected_result": [["cities", 4, 4], ["regions", 2, 2]],
+                    },
                 ]
             ),
         }
@@ -242,6 +283,7 @@ class TilesetMetadata(TableFunctionGenerator[SourceArgs, Once]):
                 ),
                 description="Name and bounds of the fixture PMTiles archive",
             ),
+            FunctionExample(sql=TILESTATS_CHECK_SQL, description=TILESTATS_CHECK_DESCRIPTION),
             FunctionExample(
                 sql=(f"SELECT value FROM mvt.main.tileset_metadata('{ZCTA_PMTILES}') WHERE key = 'maxzoom'"),
                 description="Max zoom of a remote PMTiles archive (reads only its header)",

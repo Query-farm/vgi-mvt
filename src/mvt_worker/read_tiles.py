@@ -39,6 +39,18 @@ BATCH_ROWS = 8192
 TILES_PER_FETCH = 32
 DEFAULT_MAX_TILES = 10_000
 
+# Composed example: a point-in-polygon join of two layers of the same fixture tileset. Only Milan
+# lies inside a region (the square, outside its hole); the other cities get NULL.
+CITIES_IN_REGIONS_SQL = (
+    "SELECT c.name AS city, r.label AS region "
+    "FROM mvt.main.read_tiles('test/fixtures/sample.pmtiles', layer := 'cities') AS c "
+    "LEFT JOIN mvt.main.read_tiles('test/fixtures/sample.pmtiles', layer := 'regions') AS r "
+    "ON ST_Within(c.geometry, r.geometry) ORDER BY city"
+)
+CITIES_IN_REGIONS_DESCRIPTION = (
+    "Tag each city with the region polygon that contains it (NULL when none): a spatial join of two layers"
+)
+
 _COORDS_DOC = (
     "Output coordinate system: 'wgs84' (longitude/latitude degrees, the default), 'web_mercator' "
     "(EPSG:3857 metres) or 'tile' (raw tile pixels, 0..extent from the tile's top-left corner)."
@@ -263,6 +275,16 @@ class ReadTiles(TableFunctionGenerator[ReadTilesArgs, TileCursor]):
                         ),
                         "expected_result": [["cities", 4], ["regions", 2]],
                     },
+                    {
+                        "description": CITIES_IN_REGIONS_DESCRIPTION,
+                        "sql": CITIES_IN_REGIONS_SQL,
+                        "expected_result": [
+                            ["Berlin", None],
+                            ["Milan", "Square with a hole"],
+                            ["Paris", None],
+                            ["Vienna", None],
+                        ],
+                    },
                 ]
             ),
         }
@@ -276,6 +298,7 @@ class ReadTiles(TableFunctionGenerator[ReadTilesArgs, TileCursor]):
                 ),
                 description="Features per layer of the fixture tileset: one row each, joined across tile edges",
             ),
+            FunctionExample(sql=CITIES_IN_REGIONS_SQL, description=CITIES_IN_REGIONS_DESCRIPTION),
             FunctionExample(
                 sql=(
                     "SELECT layer, count(*) AS features FROM mvt.main.read_tiles('test/fixtures/sample.pmtiles') "

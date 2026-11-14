@@ -32,3 +32,10 @@ tasks:
         AND (SELECT value FROM mvt.main.tileset_metadata('cities-only.pmtiles') WHERE key = 'maxzoom') = '6'
         AND (SELECT value FROM mvt.main.tileset_metadata('cities-only.pmtiles') WHERE key = 'minzoom') = '0'
       FROM mvt.main.read_tiles('cities-only.pmtiles', zoom := 6)
+  - name: roads_crossing_areas
+    reference_sql: >-
+      SELECT r.name AS road, a.name AS area
+      FROM mvt.main.read_tiles('test/fixtures/edges.pmtiles', layer := 'roads') AS r
+      JOIN mvt.main.read_tiles('test/fixtures/edges.pmtiles', layer := 'areas') AS a
+        ON ST_Intersects(r.geometry, a.geometry)
+      ORDER BY road, area

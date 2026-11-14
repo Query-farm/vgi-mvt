@@ -83,6 +83,17 @@ Every feature-reading function returns `layer, z, x, y, feature_id, geometry_typ
 geometry, properties`. With `layer := 'name'`, one typed column per attribute of that
 layer follows.
 
+The functions combine. For example, check that each attribute a tileset declares is present
+on its decoded features (here the fixture tileset, from the repository root):
+
+```sql
+SELECT l.layer, l.field, count(*) AS features,
+       count(*) FILTER (WHERE t.properties ->> l.field IS NOT NULL) AS with_field
+FROM mvt.main.tileset_layers('test/fixtures/sample.pmtiles') AS l
+JOIN mvt.main.read_tiles('test/fixtures/sample.pmtiles') AS t USING (layer)
+GROUP BY ALL ORDER BY ALL;
+```
+
 ## Write a tileset
 
 The other direction is a `COPY` format. One row is one feature, and a `layer` column puts
