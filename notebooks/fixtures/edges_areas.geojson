@@ -1,0 +1,4 @@
+{"type":"FeatureCollection","features":[
+{"type":"Feature","properties":{"name":"Four tiles"},"geometry":{"type":"Polygon","coordinates":[[[-10,38],[10,38],[10,50],[-10,50],[-10,38]]]}},
+{"type":"Feature","properties":{"name":"One tile"},"geometry":{"type":"Polygon","coordinates":[[[20,10],[25,10],[25,15],[20,15],[20,10]]]}}
+]}

@@ -387,3 +387,7 @@ Written by [Query.Farm](https://query.farm). Released under the BSD Zero Clause 
 (see [LICENSE](LICENSE)).
 
 Copyright 2026 Query Farm LLC - https://query.farm
+
+## Executed notebooks
+
+See [notebooks/](notebooks/) for a portable comparison of tile fragments, merged feature counts and projected geometry measurements.

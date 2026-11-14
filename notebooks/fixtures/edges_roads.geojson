@@ -1,0 +1,4 @@
+{"type":"FeatureCollection","features":[
+{"type":"Feature","properties":{"name":"Diagonal","kind":"road"},"geometry":{"type":"LineString","coordinates":[[-20,35],[20,55]]}},
+{"type":"Feature","properties":{"name":"Short","kind":"path"},"geometry":{"type":"LineString","coordinates":[[10,10],[12,12]]}}
+]}

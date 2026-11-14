@@ -1,0 +1,26 @@
+{
+  "repository": "Query-farm/vgi-mvt",
+  "revision": "41aa112e5d72f2ee7481e68c45ba6e4e03174690",
+  "generator": "scripts/make_fixtures.sh (GDAL ogr2ogr, committed outputs)",
+  "provenance": "Unchanged explicitly synthetic test fixtures: two invented road lines and two invented areas. Coordinates are design inputs, not observations. No feature IDs are encoded by GDAL; matching uses properties and adjacent tile edges.",
+  "files": [
+    {
+      "file": "edges.pmtiles",
+      "source_path": "test/fixtures/edges.pmtiles",
+      "bytes": 2062,
+      "sha256": "304713286a01292458da750741a1c9b1f5bac9e0923153788540ce27a60eb698"
+    },
+    {
+      "file": "edges_roads.geojson",
+      "source_path": "test/fixtures/src/edges_roads.geojson",
+      "bytes": 305,
+      "sha256": "288a021c3b38ff18e23d1406ae5143d4be759fa7a043be08fee83fe241d77288"
+    },
+    {
+      "file": "edges_areas.geojson",
+      "source_path": "test/fixtures/src/edges_areas.geojson",
+      "bytes": 330,
+      "sha256": "876371d0a4d65ea75c178d1185179550aba97515891e9be7919137587375ef99"
+    }
+  ]
+}
