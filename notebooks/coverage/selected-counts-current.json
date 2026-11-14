@@ -1,0 +1,18 @@
+{
+  "query": "SELECT 'areas' AS layer,count(*) AS rows FROM fixture_layers.main.areas UNION ALL SELECT 'roads',count(*) FROM fixture_layers.main.roads",
+  "captured_at": "2026-11-14T22:58:13.009871+00:00",
+  "columns": [
+    "layer",
+    "rows"
+  ],
+  "rows": [
+    [
+      "areas",
+      2
+    ],
+    [
+      "roads",
+      2
+    ]
+  ]
+}

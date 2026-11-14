@@ -1,0 +1,12 @@
+{
+  "query": "COPY (SELECT * FROM mvt.main.read_mvt('fixtures/0-0-0.mvt',0,0,0)) TO 'artifacts/catalog-writer.pmtiles' (FORMAT 'mvt.pmtiles',minzoom 2,maxzoom 2,extent 512,buffer 0,simplify 0,max_tiles 64)",
+  "captured_at": "2026-11-14T22:58:10.744624+00:00",
+  "columns": [
+    "Count"
+  ],
+  "rows": [
+    [
+      6
+    ]
+  ]
+}

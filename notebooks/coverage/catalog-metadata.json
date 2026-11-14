@@ -1,0 +1,48 @@
+{
+  "query": "SELECT * FROM duckdb_databases() WHERE database_name='mvt'",
+  "captured_at": "2026-11-14T22:44:39.022827+00:00",
+  "columns": [
+    "database_name",
+    "database_oid",
+    "path",
+    "comment",
+    "tags",
+    "internal",
+    "type",
+    "readonly",
+    "encrypted",
+    "cipher",
+    "options"
+  ],
+  "rows": [
+    [
+      "mvt",
+      22952,
+      null,
+      "# Read Mapbox Vector Tiles in DuckDB\n\n**Turn vector tiles back into data.** Decode Mapbox Vector Tiles into rows with a DuckDB `GEOMETRY` column and the features' attributes, from PMTiles (file or URL), MBTiles, `{z}/{x}/{y}` tile servers, single `.mvt` / `.pbf` tiles or tile blobs in a query.\n\nCoordinates come back as WGS84 longitude/latitude by default; Web Mercator metres and raw tile pixels are available too. Vector tiles are a lossy, display-oriented format: coordinates snap to a grid of usually 4096 per tile, and features are clipped at tile edges and simplified at low zoom, so read the highest zoom for the most faithful geometry.",
+      {
+        "vgi.agent_test_tasks": "[{\"name\": \"fixture_city_count\", \"prompt\": \"Using the mvt worker, how many features are in the 'cities' layer of the tileset test/fixtures/sample.pmtiles at zoom 3?\"}, {\"name\": \"largest_city\", \"prompt\": \"Using the mvt worker, which city in the 'cities' layer of test/fixtures/sample.mbtiles has the largest population?\"}, {\"name\": \"fixture_maxzoom\", \"prompt\": \"What is the maximum zoom level of the tileset test/fixtures/sample.pmtiles?\"}, {\"name\": \"tile_polygons\", \"prompt\": \"How many polygon features does the single vector tile test/fixtures/0-0-0.mvt (tile 0/0/0) hold?\"}, {\"name\": \"region_attributes\", \"prompt\": \"List the attribute names of the 'regions' layer in test/fixtures/sample.pmtiles, alphabetically.\"}, {\"name\": \"decode_mbtiles_rows\", \"prompt\": \"Read the raw rows of the 'tiles' table of test/fixtures/sample.mbtiles at zoom 2 with DuckDB's sqlite extension and decode them with the mvt worker. How many features come out?\"}, {\"name\": \"write_cities_layer\", \"prompt\": \"Write only the 'cities' layer of test/fixtures/sample.pmtiles into a new PMTiles vector tileset named cities-only.pmtiles in the working directory, with zoom levels 0 through 6.\"}]",
+        "vgi.author": "Query.Farm",
+        "vgi.copyright": "Copyright 2026 Query Farm LLC - https://query.farm",
+        "vgi.doc_llm": "Decode Mapbox Vector Tiles (MVT, the protobuf tile format behind most web maps) back into DuckDB tables. Each feature becomes a row with its layer, tile address (z/x/y), feature id, a `GEOMETRY` in WGS84 longitude/latitude (or Web Mercator, or raw tile pixels) and its attributes as `JSON`; naming one layer also returns each attribute as a typed column. Sources: PMTiles archives (local, or remote over HTTP range requests, so planet-scale files are fine with a bbox), MBTiles SQLite files, `{z}/{x}/{y}` tile-server URL templates, single .mvt/.pbf tiles, and tile blobs already in a DuckDB query. Attaching with a `tileset` option exposes each layer of that tileset as a table with typed attribute columns, scoped by the `zoom` and `bbox` attach options. Read the tileset metadata first to learn its zoom range, layers and attributes. Geometry is quantised to the tile grid. Tilesets store a feature once per tile it touches; the tileset readers join those pieces back into one row per feature by default (`tile_edges`), while the single-tile decoders return each tile as stored. The other direction is a COPY TO format: FORMAT 'mvt.pmtiles' encodes a query's rows (one `GEOMETRY` per row, a `layer` column for several layers) as a new PMTiles tileset.",
+        "vgi.doc_md": "# Read Mapbox Vector Tiles in DuckDB\n\n**Turn vector tiles back into data.** Decode Mapbox Vector Tiles into rows with a DuckDB `GEOMETRY` column and the features' attributes, from PMTiles (file or URL), MBTiles, `{z}/{x}/{y}` tile servers, single `.mvt` / `.pbf` tiles or tile blobs in a query.\n\nCoordinates come back as WGS84 longitude/latitude by default; Web Mercator metres and raw tile pixels are available too. Vector tiles are a lossy, display-oriented format: coordinates snap to a grid of usually 4096 per tile, and features are clipped at tile edges and simplified at low zoom, so read the highest zoom for the most faithful geometry.",
+        "vgi.icon_url": "https://query.farm/media-kit/products/vgi/vgi-logo.png",
+        "vgi.keywords": "[\"vgi\", \"duckdb\", \"vector tiles\", \"mvt\", \"mapbox vector tile\", \"pmtiles\", \"mbtiles\", \"xyz tiles\", \"gis\", \"geometry\", \"protobuf\"]",
+        "vgi.license": "0BSD",
+        "vgi.source_url": "https://github.com/Query-farm/vgi-mvt",
+        "vgi.subtitle": "Decode PMTiles, MBTiles, XYZ and .mvt vector tiles into DuckDB rows with GEOMETRY columns.",
+        "vgi.support_contact": "https://github.com/Query-farm/vgi-mvt/issues",
+        "vgi.support_policy_url": "https://github.com/Query-farm/vgi-mvt#support",
+        "vgi.title": "Mapbox Vector Tile Reader"
+      },
+      false,
+      "vgi",
+      false,
+      false,
+      null,
+      {
+        "location": "uvx --python 3.13 --from git+https://github.com/Query-farm/vgi-mvt@v0.3.0 vgi-mvt-worker"
+      }
+    ]
+  ]
+}

@@ -1,0 +1,353 @@
+{
+  "schema_version": 1,
+  "catalogs": {
+    "released": {
+      "path": "coverage/catalog-released.json",
+      "sha256": "c2482e5732a2a12a643d008db8279856280956eeff1812cab41e3f8eeacc94c3",
+      "review": {
+        "status": "approved",
+        "reviewer": "Codex /root/notebooks_earthquakes",
+        "reviewed_at": "2026-11-14T23:02:04.137374+00:00",
+        "catalog_sha256": "c2482e5732a2a12a643d008db8279856280956eeff1812cab41e3f8eeacc94c3",
+        "notes": "Complete actual catalog for default and explicit edges.pmtiles configuration: six fixed named functions including COPY writer plus two data-dependent layer tables. Raw exports, full arguments, output/table columns and COPY options reconciled. Future archives can expose different names/schema; no global static denominator invented. Current callable/table signatures match release; source differences only metadata examples/docs. Notebook executions use release, not current-main reruns."
+      }
+    },
+    "current": {
+      "path": "coverage/catalog-current.json",
+      "sha256": "f33539c4cefc536fe9099224fdc101b3fa3a6fe8b1220d18a66868616b1a8c2c",
+      "review": {
+        "status": "approved",
+        "reviewer": "Codex /root/notebooks_earthquakes",
+        "reviewed_at": "2026-11-14T23:02:04.137374+00:00",
+        "catalog_sha256": "f33539c4cefc536fe9099224fdc101b3fa3a6fe8b1220d18a66868616b1a8c2c",
+        "notes": "Complete actual catalog for default and explicit edges.pmtiles configuration: six fixed named functions including COPY writer plus two data-dependent layer tables. Raw exports, full arguments, output/table columns and COPY options reconciled. Future archives can expose different names/schema; no global static denominator invented. Current callable/table signatures match release; source differences only metadata examples/docs. Notebook executions use release, not current-main reruns."
+      }
+    }
+  },
+  "notebooks": [
+    {
+      "path": "01_tile_fragments_and_feature_counts.ipynb",
+      "sha256": "9090ffdcf0d0e1076dd80f0d18b44a29b038168d82d5cc77a37f4c8d1797b94c",
+      "execution": {
+        "path": "coverage/run-01.json",
+        "sha256": "9a01036c18dc20128a3033be1c758ea4a077b4e9e5d16994204f554fad9ae397"
+      }
+    },
+    {
+      "path": "02_retiled_identity_and_coordinates.ipynb",
+      "sha256": "5a1abc159b1a774d5ed7b2ed1bb3e49048ce51b8c1cc4d1f8ccb01eb879e0271",
+      "execution": {
+        "path": "coverage/run-02.json",
+        "sha256": "4785d45d882e58f85e552a8595628a5a7100a1bda03131caeab5811599c2e41f"
+      }
+    }
+  ],
+  "examples": [
+    {
+      "object": {
+        "schema": "main",
+        "name": "tileset_metadata"
+      },
+      "notebook": "01_tile_fragments_and_feature_counts.ipynb",
+      "sql": [
+        {
+          "cell": "connection",
+          "reference": "mvt.main.tileset_metadata"
+        }
+      ],
+      "narrative_cells": [
+        "source-story",
+        "parameter-story"
+      ],
+      "result_cells": [
+        "metadata-finding"
+      ],
+      "interpretation_cells": [
+        "metadata-finding",
+        "source-story"
+      ],
+      "review": {
+        "status": "approved",
+        "reviewer": "Codex /root/notebooks_earthquakes",
+        "reviewed_at": "2026-11-14T23:02:04.137374+00:00",
+        "notebook_sha256": "9090ffdcf0d0e1076dd80f0d18b44a29b038168d82d5cc77a37f4c8d1797b94c",
+        "catalog_sha256": [
+          "c2482e5732a2a12a643d008db8279856280956eeff1812cab41e3f8eeacc94c3",
+          "f33539c4cefc536fe9099224fdc101b3fa3a6fe8b1220d18a66868616b1a8c2c"
+        ],
+        "purpose": "Choose a zoom present in the archive and distinguish header declarations from feature counts.",
+        "finding": "Returned metadata declares zoom range and format; notebook restricts zoom2/3 to actual fixture levels, reports data-derived declaration and compares actual decoded counts separately."
+      }
+    },
+    {
+      "object": {
+        "schema": "main",
+        "name": "tileset_layers"
+      },
+      "notebook": "01_tile_fragments_and_feature_counts.ipynb",
+      "sql": [
+        {
+          "cell": "connection",
+          "reference": "mvt.main.tileset_layers"
+        }
+      ],
+      "narrative_cells": [
+        "source-story",
+        "attached-story"
+      ],
+      "result_cells": [
+        "fields-finding"
+      ],
+      "interpretation_cells": [
+        "fields-finding",
+        "attached-story"
+      ],
+      "review": {
+        "status": "approved",
+        "reviewer": "Codex /root/notebooks_earthquakes",
+        "reviewed_at": "2026-11-14T23:02:04.137374+00:00",
+        "notebook_sha256": "9090ffdcf0d0e1076dd80f0d18b44a29b038168d82d5cc77a37f4c8d1797b94c",
+        "catalog_sha256": [
+          "c2482e5732a2a12a643d008db8279856280956eeff1812cab41e3f8eeacc94c3",
+          "f33539c4cefc536fe9099224fdc101b3fa3a6fe8b1220d18a66868616b1a8c2c"
+        ],
+        "purpose": "Check declared attribute schema against materialized merged rows before using typed layer tables.",
+        "finding": "Three declared fields across areas/roads are reconciled with populated properties and feature populations; metadata rows are attributes, not feature counts."
+      }
+    },
+    {
+      "object": {
+        "schema": "main",
+        "name": "read_tiles"
+      },
+      "notebook": "01_tile_fragments_and_feature_counts.ipynb",
+      "sql": [
+        {
+          "cell": "connection",
+          "reference": "mvt.main.read_tiles"
+        }
+      ],
+      "narrative_cells": [
+        "identity-story",
+        "geometry-story",
+        "measurement-story",
+        "experiment-story"
+      ],
+      "result_cells": [
+        "summary-table",
+        "map-chart",
+        "measure-chart",
+        "measure-finding",
+        "checks-finding"
+      ],
+      "interpretation_cells": [
+        "measure-finding",
+        "measurement-story",
+        "experiment-story"
+      ],
+      "review": {
+        "status": "approved",
+        "reviewer": "Codex /root/notebooks_earthquakes",
+        "reviewed_at": "2026-11-14T23:02:04.137374+00:00",
+        "notebook_sha256": "9090ffdcf0d0e1076dd80f0d18b44a29b038168d82d5cc77a37f4c8d1797b94c",
+        "catalog_sha256": [
+          "c2482e5732a2a12a643d008db8279856280956eeff1812cab41e3f8eeacc94c3",
+          "f33539c4cefc536fe9099224fdc101b3fa3a6fe8b1220d18a66868616b1a8c2c"
+        ],
+        "purpose": "Separate buffered fragments, feature identity and projected measurements across raw/clip/merge policies.",
+        "finding": "Same bounded immutable archive read once per policy. Zoom3\u21922 changes fragment counts while four uniquely named fixture features remain. Measures remain planar; line endpoint snapping means clip/merge lengths need not agree exactly."
+      }
+    },
+    {
+      "object": {
+        "schema": "main",
+        "name": "areas"
+      },
+      "notebook": "01_tile_fragments_and_feature_counts.ipynb",
+      "sql": [
+        {
+          "cell": "attached-query",
+          "reference": "fixture_layers.main.areas"
+        }
+      ],
+      "narrative_cells": [
+        "attached-story",
+        "identity-story"
+      ],
+      "result_cells": [
+        "attached-finding",
+        "checks-finding"
+      ],
+      "interpretation_cells": [
+        "attached-finding",
+        "attached-story"
+      ],
+      "review": {
+        "status": "approved",
+        "reviewer": "Codex /root/notebooks_earthquakes",
+        "reviewed_at": "2026-11-14T23:02:04.137374+00:00",
+        "notebook_sha256": "9090ffdcf0d0e1076dd80f0d18b44a29b038168d82d5cc77a37f4c8d1797b94c",
+        "catalog_sha256": [
+          "c2482e5732a2a12a643d008db8279856280956eeff1812cab41e3f8eeacc94c3",
+          "f33539c4cefc536fe9099224fdc101b3fa3a6fe8b1220d18a66868616b1a8c2c"
+        ],
+        "purpose": "Verify direct typed table access agrees with the same selected archive and edge policy through read_tiles.",
+        "finding": "Actual fixture_layers.areas contributes two rows. Full key comparison and ST_Equals reconcile all four features at each selected zoom. Layer names and column schema are specific to this fixture, not arbitrary future archives."
+      }
+    },
+    {
+      "object": {
+        "schema": "main",
+        "name": "roads"
+      },
+      "notebook": "01_tile_fragments_and_feature_counts.ipynb",
+      "sql": [
+        {
+          "cell": "attached-query",
+          "reference": "fixture_layers.main.roads"
+        }
+      ],
+      "narrative_cells": [
+        "attached-story",
+        "identity-story"
+      ],
+      "result_cells": [
+        "attached-finding",
+        "checks-finding"
+      ],
+      "interpretation_cells": [
+        "attached-finding",
+        "attached-story"
+      ],
+      "review": {
+        "status": "approved",
+        "reviewer": "Codex /root/notebooks_earthquakes",
+        "reviewed_at": "2026-11-14T23:02:04.137374+00:00",
+        "notebook_sha256": "9090ffdcf0d0e1076dd80f0d18b44a29b038168d82d5cc77a37f4c8d1797b94c",
+        "catalog_sha256": [
+          "c2482e5732a2a12a643d008db8279856280956eeff1812cab41e3f8eeacc94c3",
+          "f33539c4cefc536fe9099224fdc101b3fa3a6fe8b1220d18a66868616b1a8c2c"
+        ],
+        "purpose": "Verify direct typed table access agrees with the same selected archive and edge policy through read_tiles.",
+        "finding": "Actual fixture_layers.roads contributes two rows. Full key comparison and ST_Equals reconcile all four features at each selected zoom. Layer names and column schema are specific to this fixture, not arbitrary future archives."
+      }
+    },
+    {
+      "object": {
+        "schema": "main",
+        "name": "read_mvt"
+      },
+      "notebook": "02_retiled_identity_and_coordinates.ipynb",
+      "sql": [
+        {
+          "cell": "decode-query",
+          "reference": "mvt.main.read_mvt"
+        }
+      ],
+      "narrative_cells": [
+        "decode-story",
+        "question"
+      ],
+      "result_cells": [
+        "decode-finding",
+        "measure-finding",
+        "checks-finding"
+      ],
+      "interpretation_cells": [
+        "decode-finding",
+        "decode-story"
+      ],
+      "review": {
+        "status": "approved",
+        "reviewer": "Codex /root/notebooks_earthquakes",
+        "reviewed_at": "2026-11-14T23:02:04.137374+00:00",
+        "notebook_sha256": "5a1abc159b1a774d5ed7b2ed1bb3e49048ce51b8c1cc4d1f8ccb01eb879e0271",
+        "catalog_sha256": [
+          "c2482e5732a2a12a643d008db8279856280956eeff1812cab41e3f8eeacc94c3",
+          "f33539c4cefc536fe9099224fdc101b3fa3a6fe8b1220d18a66868616b1a8c2c"
+        ],
+        "purpose": "Establish file/BLOB equivalence using identical tile bytes and explicit XYZ address before retile measurement.",
+        "finding": "Both decoding paths return the same six rows by full multiset comparison, preserving no-ID inputs and complete properties. Assigned IDs are controlled notebook identities. The original tile is already quantized and is not current place data."
+      }
+    },
+    {
+      "object": {
+        "schema": "main",
+        "name": "mvt_decode"
+      },
+      "notebook": "02_retiled_identity_and_coordinates.ipynb",
+      "sql": [
+        {
+          "cell": "decode-query",
+          "reference": "mvt.main.mvt_decode"
+        }
+      ],
+      "narrative_cells": [
+        "decode-story",
+        "question"
+      ],
+      "result_cells": [
+        "decode-finding",
+        "measure-finding",
+        "checks-finding"
+      ],
+      "interpretation_cells": [
+        "decode-finding",
+        "decode-story"
+      ],
+      "review": {
+        "status": "approved",
+        "reviewer": "Codex /root/notebooks_earthquakes",
+        "reviewed_at": "2026-11-14T23:02:04.137374+00:00",
+        "notebook_sha256": "5a1abc159b1a774d5ed7b2ed1bb3e49048ce51b8c1cc4d1f8ccb01eb879e0271",
+        "catalog_sha256": [
+          "c2482e5732a2a12a643d008db8279856280956eeff1812cab41e3f8eeacc94c3",
+          "f33539c4cefc536fe9099224fdc101b3fa3a6fe8b1220d18a66868616b1a8c2c"
+        ],
+        "purpose": "Establish file/BLOB equivalence using identical tile bytes and explicit XYZ address before retile measurement.",
+        "finding": "Both decoding paths return the same six rows by full multiset comparison, preserving no-ID inputs and complete properties. Assigned IDs are controlled notebook identities. The original tile is already quantized and is not current place data."
+      }
+    },
+    {
+      "object": {
+        "schema": "main",
+        "name": "write_pmtiles"
+      },
+      "notebook": "02_retiled_identity_and_coordinates.ipynb",
+      "sql": [
+        {
+          "cell": "copy-query",
+          "reference": "mvt.main.write_pmtiles"
+        }
+      ],
+      "narrative_cells": [
+        "copy-story",
+        "measurement-story",
+        "experiment-story"
+      ],
+      "result_cells": [
+        "copy-finding",
+        "measure-finding",
+        "roundtrip-chart",
+        "checks-finding"
+      ],
+      "interpretation_cells": [
+        "copy-finding",
+        "measure-finding",
+        "experiment-story"
+      ],
+      "review": {
+        "status": "approved",
+        "reviewer": "Codex /root/notebooks_earthquakes",
+        "reviewed_at": "2026-11-14T23:02:04.137374+00:00",
+        "notebook_sha256": "5a1abc159b1a774d5ed7b2ed1bb3e49048ce51b8c1cc4d1f8ccb01eb879e0271",
+        "catalog_sha256": [
+          "c2482e5732a2a12a643d008db8279856280956eeff1812cab41e3f8eeacc94c3",
+          "f33539c4cefc536fe9099224fdc101b3fa3a6fe8b1220d18a66868616b1a8c2c"
+        ],
+        "purpose": "Test whether a real local COPY round trip retains identities and properties while geometry changes with the grid.",
+        "finding": "Visible COPY uses registered mvt.pmtiles format; output is actually read back. Six assigned identities/properties survive, but point displacements and polygon area percentages change extent512\u2192256. Projected rounding bound and known excluded hole centre pass. File/BLOB/source population remains fixed; no Python replacement encoder or external destination."
+      }
+    }
+  ]
+}

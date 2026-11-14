@@ -1,0 +1,17 @@
+{
+  "release": "v0.3.0",
+  "release_commit": "3f013b731056f751a7168d0f833dfdc7607b0c63",
+  "current_revision": "81282ed09ae9793b1ca91860e1f4cb32d157aeb6",
+  "root_dependencies_unchanged": true,
+  "source_ci": {
+    "url": "https://github.com/Query-farm/vgi-mvt/actions/runs/43573972996",
+    "revision": "81282ed09ae9793b1ca91860e1f4cb32d157aeb6",
+    "conclusion": "success"
+  },
+  "runtime": "Haybarn2.0.0rc11",
+  "launch": "uvx --python 3.13 --from git+https://github.com/Query-farm/vgi-mvt@v0.3.0 vgi-mvt-worker",
+  "source_review": "Release to current source diff adds composed executable metadata examples and documentation in layers.py/meta.py/read_tiles.py only. Decode, tile-edge merging, writer and computational behavior unchanged. Actual complete fixed catalog and selected-fixture catalog signatures match. No worker source or root dependency changes in this notebook publication.",
+  "metadata_provenance": "Actual catalog-metadata.json vgi.title/vgi.subtitle.",
+  "scope": "Unconfigured fixed catalog has six functions (including COPY writer) and no tables/views. Selected edges.pmtiles configuration adds areas and roads tables. Complete snapshot is the union for these documented configurations: eight logical named surfaces. Arbitrary future tilesets have data-dependent names/schema; not assigned an invented global static denominator.",
+  "write_scope": "COPY writes only a disposable notebook artifacts/retiled.pmtiles archive; no remote writes. COPY registry has17option rows for one format/handler, counted once."
+}

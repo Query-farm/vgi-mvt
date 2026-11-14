@@ -1,0 +1,376 @@
+{
+  "query": "SELECT * FROM vgi_copy_formats() WHERE catalog_name='mvt'",
+  "captured_at": "2026-11-14T22:44:44.037197+00:00",
+  "columns": [
+    "catalog_name",
+    "format_name",
+    "direction",
+    "ordered",
+    "format_description",
+    "format_comment",
+    "format_tags",
+    "handler",
+    "option_name",
+    "option_type",
+    "option_description"
+  ],
+  "rows": [
+    [
+      "mvt",
+      "mvt.pmtiles",
+      "to",
+      true,
+      "COPY ... TO format that encodes rows with a GEOMETRY column as a PMTiles vector tileset",
+      "Vector tiles (MVT) in a PMTiles v3 archive",
+      {
+        "vgi.category": "writers",
+        "vgi.doc_llm": "A COPY TO format, not a table function: use it as FORMAT 'mvt.pmtiles' in a COPY ... TO statement whose destination is a local .pmtiles path. Each row is a feature. The `GEOMETRY` column must be WGS84 lon/lat (or EPSG:3857). A `VARCHAR` column named `layer` (or `layer_column`) names each row's layer, so one COPY can write several layers via UNION ALL; without it every row goes to `layer` (default: the file name). A column named `feature_id` (or `id_column`) becomes the feature id, and a column named `properties` holding JSON objects is expanded into attributes, so read_tiles output can be written back. Every other column becomes an attribute (`VARCHAR`, numbers, `BOOLEAN`; dates as ISO text; lists and structs as JSON text); NULLs are omitted. Options: minzoom/maxzoom (default 0/14); minzoom_column/maxzoom_column for per-feature zoom ranges; simplify and buffer (pixels of a 256-pixel tile); extent (4096); max_tile_bytes (500000: fails rather than dropping features); max_tiles; name, description, attribution. ORDER BY sets drawing order. COPY reports the number of rows written.",
+        "vgi.doc_md": "## COPY ... TO (FORMAT 'mvt.pmtiles')\n\nEncode a query's rows as Mapbox Vector Tiles in a PMTiles archive. One row is one feature; a `layer` column puts rows in different layers of the same tiles, so a single COPY of a `UNION ALL` writes a whole multi-layer basemap.",
+        "vgi.example_queries": "[{\"description\": \"Write two cities as a one-layer tileset (zoom 0 to 8)\", \"sql\": \"COPY (SELECT 'cities' AS layer, name, population, ST_Point(lon, lat) AS geometry FROM (VALUES ('Rome', 2800000, 12.5, 41.9), ('Paris', 2100000, 2.35, 48.86)) t(name, population, lon, lat)) TO 'cities.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 8)\"}, {\"description\": \"Re-tile every layer of an existing tileset into a new archive\", \"sql\": \"COPY (SELECT layer, feature_id, properties, geometry FROM mvt.main.read_tiles('test/fixtures/sample.pmtiles')) TO 'sample-copy.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 4, name 'sample copy')\"}]",
+        "vgi.keywords": "[\"copy to\", \"export\", \"write\", \"tippecanoe\", \"tileset\", \"pmtiles\", \"mvt\", \"vector tiles\", \"basemap\"]",
+        "vgi.result_columns_schema": "[{\"name\": \"Count\", \"type\": \"BIGINT\", \"description\": \"Rows written (reported by COPY).\"}]",
+        "vgi.title": "Write PMTiles"
+      },
+      "write_pmtiles",
+      "attribution",
+      "VARCHAR",
+      "Attribution (HTML) in the metadata"
+    ],
+    [
+      "mvt",
+      "mvt.pmtiles",
+      "to",
+      true,
+      "COPY ... TO format that encodes rows with a GEOMETRY column as a PMTiles vector tileset",
+      "Vector tiles (MVT) in a PMTiles v3 archive",
+      {
+        "vgi.category": "writers",
+        "vgi.doc_llm": "A COPY TO format, not a table function: use it as FORMAT 'mvt.pmtiles' in a COPY ... TO statement whose destination is a local .pmtiles path. Each row is a feature. The `GEOMETRY` column must be WGS84 lon/lat (or EPSG:3857). A `VARCHAR` column named `layer` (or `layer_column`) names each row's layer, so one COPY can write several layers via UNION ALL; without it every row goes to `layer` (default: the file name). A column named `feature_id` (or `id_column`) becomes the feature id, and a column named `properties` holding JSON objects is expanded into attributes, so read_tiles output can be written back. Every other column becomes an attribute (`VARCHAR`, numbers, `BOOLEAN`; dates as ISO text; lists and structs as JSON text); NULLs are omitted. Options: minzoom/maxzoom (default 0/14); minzoom_column/maxzoom_column for per-feature zoom ranges; simplify and buffer (pixels of a 256-pixel tile); extent (4096); max_tile_bytes (500000: fails rather than dropping features); max_tiles; name, description, attribution. ORDER BY sets drawing order. COPY reports the number of rows written.",
+        "vgi.doc_md": "## COPY ... TO (FORMAT 'mvt.pmtiles')\n\nEncode a query's rows as Mapbox Vector Tiles in a PMTiles archive. One row is one feature; a `layer` column puts rows in different layers of the same tiles, so a single COPY of a `UNION ALL` writes a whole multi-layer basemap.",
+        "vgi.example_queries": "[{\"description\": \"Write two cities as a one-layer tileset (zoom 0 to 8)\", \"sql\": \"COPY (SELECT 'cities' AS layer, name, population, ST_Point(lon, lat) AS geometry FROM (VALUES ('Rome', 2800000, 12.5, 41.9), ('Paris', 2100000, 2.35, 48.86)) t(name, population, lon, lat)) TO 'cities.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 8)\"}, {\"description\": \"Re-tile every layer of an existing tileset into a new archive\", \"sql\": \"COPY (SELECT layer, feature_id, properties, geometry FROM mvt.main.read_tiles('test/fixtures/sample.pmtiles')) TO 'sample-copy.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 4, name 'sample copy')\"}]",
+        "vgi.keywords": "[\"copy to\", \"export\", \"write\", \"tippecanoe\", \"tileset\", \"pmtiles\", \"mvt\", \"vector tiles\", \"basemap\"]",
+        "vgi.result_columns_schema": "[{\"name\": \"Count\", \"type\": \"BIGINT\", \"description\": \"Rows written (reported by COPY).\"}]",
+        "vgi.title": "Write PMTiles"
+      },
+      "write_pmtiles",
+      "buffer",
+      "DOUBLE",
+      "Margin around each tile, in pixels of a 256-pixel tile"
+    ],
+    [
+      "mvt",
+      "mvt.pmtiles",
+      "to",
+      true,
+      "COPY ... TO format that encodes rows with a GEOMETRY column as a PMTiles vector tileset",
+      "Vector tiles (MVT) in a PMTiles v3 archive",
+      {
+        "vgi.category": "writers",
+        "vgi.doc_llm": "A COPY TO format, not a table function: use it as FORMAT 'mvt.pmtiles' in a COPY ... TO statement whose destination is a local .pmtiles path. Each row is a feature. The `GEOMETRY` column must be WGS84 lon/lat (or EPSG:3857). A `VARCHAR` column named `layer` (or `layer_column`) names each row's layer, so one COPY can write several layers via UNION ALL; without it every row goes to `layer` (default: the file name). A column named `feature_id` (or `id_column`) becomes the feature id, and a column named `properties` holding JSON objects is expanded into attributes, so read_tiles output can be written back. Every other column becomes an attribute (`VARCHAR`, numbers, `BOOLEAN`; dates as ISO text; lists and structs as JSON text); NULLs are omitted. Options: minzoom/maxzoom (default 0/14); minzoom_column/maxzoom_column for per-feature zoom ranges; simplify and buffer (pixels of a 256-pixel tile); extent (4096); max_tile_bytes (500000: fails rather than dropping features); max_tiles; name, description, attribution. ORDER BY sets drawing order. COPY reports the number of rows written.",
+        "vgi.doc_md": "## COPY ... TO (FORMAT 'mvt.pmtiles')\n\nEncode a query's rows as Mapbox Vector Tiles in a PMTiles archive. One row is one feature; a `layer` column puts rows in different layers of the same tiles, so a single COPY of a `UNION ALL` writes a whole multi-layer basemap.",
+        "vgi.example_queries": "[{\"description\": \"Write two cities as a one-layer tileset (zoom 0 to 8)\", \"sql\": \"COPY (SELECT 'cities' AS layer, name, population, ST_Point(lon, lat) AS geometry FROM (VALUES ('Rome', 2800000, 12.5, 41.9), ('Paris', 2100000, 2.35, 48.86)) t(name, population, lon, lat)) TO 'cities.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 8)\"}, {\"description\": \"Re-tile every layer of an existing tileset into a new archive\", \"sql\": \"COPY (SELECT layer, feature_id, properties, geometry FROM mvt.main.read_tiles('test/fixtures/sample.pmtiles')) TO 'sample-copy.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 4, name 'sample copy')\"}]",
+        "vgi.keywords": "[\"copy to\", \"export\", \"write\", \"tippecanoe\", \"tileset\", \"pmtiles\", \"mvt\", \"vector tiles\", \"basemap\"]",
+        "vgi.result_columns_schema": "[{\"name\": \"Count\", \"type\": \"BIGINT\", \"description\": \"Rows written (reported by COPY).\"}]",
+        "vgi.title": "Write PMTiles"
+      },
+      "write_pmtiles",
+      "description",
+      "VARCHAR",
+      "Tileset description in the metadata"
+    ],
+    [
+      "mvt",
+      "mvt.pmtiles",
+      "to",
+      true,
+      "COPY ... TO format that encodes rows with a GEOMETRY column as a PMTiles vector tileset",
+      "Vector tiles (MVT) in a PMTiles v3 archive",
+      {
+        "vgi.category": "writers",
+        "vgi.doc_llm": "A COPY TO format, not a table function: use it as FORMAT 'mvt.pmtiles' in a COPY ... TO statement whose destination is a local .pmtiles path. Each row is a feature. The `GEOMETRY` column must be WGS84 lon/lat (or EPSG:3857). A `VARCHAR` column named `layer` (or `layer_column`) names each row's layer, so one COPY can write several layers via UNION ALL; without it every row goes to `layer` (default: the file name). A column named `feature_id` (or `id_column`) becomes the feature id, and a column named `properties` holding JSON objects is expanded into attributes, so read_tiles output can be written back. Every other column becomes an attribute (`VARCHAR`, numbers, `BOOLEAN`; dates as ISO text; lists and structs as JSON text); NULLs are omitted. Options: minzoom/maxzoom (default 0/14); minzoom_column/maxzoom_column for per-feature zoom ranges; simplify and buffer (pixels of a 256-pixel tile); extent (4096); max_tile_bytes (500000: fails rather than dropping features); max_tiles; name, description, attribution. ORDER BY sets drawing order. COPY reports the number of rows written.",
+        "vgi.doc_md": "## COPY ... TO (FORMAT 'mvt.pmtiles')\n\nEncode a query's rows as Mapbox Vector Tiles in a PMTiles archive. One row is one feature; a `layer` column puts rows in different layers of the same tiles, so a single COPY of a `UNION ALL` writes a whole multi-layer basemap.",
+        "vgi.example_queries": "[{\"description\": \"Write two cities as a one-layer tileset (zoom 0 to 8)\", \"sql\": \"COPY (SELECT 'cities' AS layer, name, population, ST_Point(lon, lat) AS geometry FROM (VALUES ('Rome', 2800000, 12.5, 41.9), ('Paris', 2100000, 2.35, 48.86)) t(name, population, lon, lat)) TO 'cities.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 8)\"}, {\"description\": \"Re-tile every layer of an existing tileset into a new archive\", \"sql\": \"COPY (SELECT layer, feature_id, properties, geometry FROM mvt.main.read_tiles('test/fixtures/sample.pmtiles')) TO 'sample-copy.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 4, name 'sample copy')\"}]",
+        "vgi.keywords": "[\"copy to\", \"export\", \"write\", \"tippecanoe\", \"tileset\", \"pmtiles\", \"mvt\", \"vector tiles\", \"basemap\"]",
+        "vgi.result_columns_schema": "[{\"name\": \"Count\", \"type\": \"BIGINT\", \"description\": \"Rows written (reported by COPY).\"}]",
+        "vgi.title": "Write PMTiles"
+      },
+      "write_pmtiles",
+      "extent",
+      "BIGINT",
+      "Tile coordinate grid size (units per tile edge)"
+    ],
+    [
+      "mvt",
+      "mvt.pmtiles",
+      "to",
+      true,
+      "COPY ... TO format that encodes rows with a GEOMETRY column as a PMTiles vector tileset",
+      "Vector tiles (MVT) in a PMTiles v3 archive",
+      {
+        "vgi.category": "writers",
+        "vgi.doc_llm": "A COPY TO format, not a table function: use it as FORMAT 'mvt.pmtiles' in a COPY ... TO statement whose destination is a local .pmtiles path. Each row is a feature. The `GEOMETRY` column must be WGS84 lon/lat (or EPSG:3857). A `VARCHAR` column named `layer` (or `layer_column`) names each row's layer, so one COPY can write several layers via UNION ALL; without it every row goes to `layer` (default: the file name). A column named `feature_id` (or `id_column`) becomes the feature id, and a column named `properties` holding JSON objects is expanded into attributes, so read_tiles output can be written back. Every other column becomes an attribute (`VARCHAR`, numbers, `BOOLEAN`; dates as ISO text; lists and structs as JSON text); NULLs are omitted. Options: minzoom/maxzoom (default 0/14); minzoom_column/maxzoom_column for per-feature zoom ranges; simplify and buffer (pixels of a 256-pixel tile); extent (4096); max_tile_bytes (500000: fails rather than dropping features); max_tiles; name, description, attribution. ORDER BY sets drawing order. COPY reports the number of rows written.",
+        "vgi.doc_md": "## COPY ... TO (FORMAT 'mvt.pmtiles')\n\nEncode a query's rows as Mapbox Vector Tiles in a PMTiles archive. One row is one feature; a `layer` column puts rows in different layers of the same tiles, so a single COPY of a `UNION ALL` writes a whole multi-layer basemap.",
+        "vgi.example_queries": "[{\"description\": \"Write two cities as a one-layer tileset (zoom 0 to 8)\", \"sql\": \"COPY (SELECT 'cities' AS layer, name, population, ST_Point(lon, lat) AS geometry FROM (VALUES ('Rome', 2800000, 12.5, 41.9), ('Paris', 2100000, 2.35, 48.86)) t(name, population, lon, lat)) TO 'cities.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 8)\"}, {\"description\": \"Re-tile every layer of an existing tileset into a new archive\", \"sql\": \"COPY (SELECT layer, feature_id, properties, geometry FROM mvt.main.read_tiles('test/fixtures/sample.pmtiles')) TO 'sample-copy.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 4, name 'sample copy')\"}]",
+        "vgi.keywords": "[\"copy to\", \"export\", \"write\", \"tippecanoe\", \"tileset\", \"pmtiles\", \"mvt\", \"vector tiles\", \"basemap\"]",
+        "vgi.result_columns_schema": "[{\"name\": \"Count\", \"type\": \"BIGINT\", \"description\": \"Rows written (reported by COPY).\"}]",
+        "vgi.title": "Write PMTiles"
+      },
+      "write_pmtiles",
+      "geometry_column",
+      "VARCHAR",
+      "GEOMETRY column to encode (default: the only GEOMETRY column)"
+    ],
+    [
+      "mvt",
+      "mvt.pmtiles",
+      "to",
+      true,
+      "COPY ... TO format that encodes rows with a GEOMETRY column as a PMTiles vector tileset",
+      "Vector tiles (MVT) in a PMTiles v3 archive",
+      {
+        "vgi.category": "writers",
+        "vgi.doc_llm": "A COPY TO format, not a table function: use it as FORMAT 'mvt.pmtiles' in a COPY ... TO statement whose destination is a local .pmtiles path. Each row is a feature. The `GEOMETRY` column must be WGS84 lon/lat (or EPSG:3857). A `VARCHAR` column named `layer` (or `layer_column`) names each row's layer, so one COPY can write several layers via UNION ALL; without it every row goes to `layer` (default: the file name). A column named `feature_id` (or `id_column`) becomes the feature id, and a column named `properties` holding JSON objects is expanded into attributes, so read_tiles output can be written back. Every other column becomes an attribute (`VARCHAR`, numbers, `BOOLEAN`; dates as ISO text; lists and structs as JSON text); NULLs are omitted. Options: minzoom/maxzoom (default 0/14); minzoom_column/maxzoom_column for per-feature zoom ranges; simplify and buffer (pixels of a 256-pixel tile); extent (4096); max_tile_bytes (500000: fails rather than dropping features); max_tiles; name, description, attribution. ORDER BY sets drawing order. COPY reports the number of rows written.",
+        "vgi.doc_md": "## COPY ... TO (FORMAT 'mvt.pmtiles')\n\nEncode a query's rows as Mapbox Vector Tiles in a PMTiles archive. One row is one feature; a `layer` column puts rows in different layers of the same tiles, so a single COPY of a `UNION ALL` writes a whole multi-layer basemap.",
+        "vgi.example_queries": "[{\"description\": \"Write two cities as a one-layer tileset (zoom 0 to 8)\", \"sql\": \"COPY (SELECT 'cities' AS layer, name, population, ST_Point(lon, lat) AS geometry FROM (VALUES ('Rome', 2800000, 12.5, 41.9), ('Paris', 2100000, 2.35, 48.86)) t(name, population, lon, lat)) TO 'cities.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 8)\"}, {\"description\": \"Re-tile every layer of an existing tileset into a new archive\", \"sql\": \"COPY (SELECT layer, feature_id, properties, geometry FROM mvt.main.read_tiles('test/fixtures/sample.pmtiles')) TO 'sample-copy.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 4, name 'sample copy')\"}]",
+        "vgi.keywords": "[\"copy to\", \"export\", \"write\", \"tippecanoe\", \"tileset\", \"pmtiles\", \"mvt\", \"vector tiles\", \"basemap\"]",
+        "vgi.result_columns_schema": "[{\"name\": \"Count\", \"type\": \"BIGINT\", \"description\": \"Rows written (reported by COPY).\"}]",
+        "vgi.title": "Write PMTiles"
+      },
+      "write_pmtiles",
+      "id_column",
+      "VARCHAR",
+      "Column of non-negative feature ids (default: a column named feature_id)"
+    ],
+    [
+      "mvt",
+      "mvt.pmtiles",
+      "to",
+      true,
+      "COPY ... TO format that encodes rows with a GEOMETRY column as a PMTiles vector tileset",
+      "Vector tiles (MVT) in a PMTiles v3 archive",
+      {
+        "vgi.category": "writers",
+        "vgi.doc_llm": "A COPY TO format, not a table function: use it as FORMAT 'mvt.pmtiles' in a COPY ... TO statement whose destination is a local .pmtiles path. Each row is a feature. The `GEOMETRY` column must be WGS84 lon/lat (or EPSG:3857). A `VARCHAR` column named `layer` (or `layer_column`) names each row's layer, so one COPY can write several layers via UNION ALL; without it every row goes to `layer` (default: the file name). A column named `feature_id` (or `id_column`) becomes the feature id, and a column named `properties` holding JSON objects is expanded into attributes, so read_tiles output can be written back. Every other column becomes an attribute (`VARCHAR`, numbers, `BOOLEAN`; dates as ISO text; lists and structs as JSON text); NULLs are omitted. Options: minzoom/maxzoom (default 0/14); minzoom_column/maxzoom_column for per-feature zoom ranges; simplify and buffer (pixels of a 256-pixel tile); extent (4096); max_tile_bytes (500000: fails rather than dropping features); max_tiles; name, description, attribution. ORDER BY sets drawing order. COPY reports the number of rows written.",
+        "vgi.doc_md": "## COPY ... TO (FORMAT 'mvt.pmtiles')\n\nEncode a query's rows as Mapbox Vector Tiles in a PMTiles archive. One row is one feature; a `layer` column puts rows in different layers of the same tiles, so a single COPY of a `UNION ALL` writes a whole multi-layer basemap.",
+        "vgi.example_queries": "[{\"description\": \"Write two cities as a one-layer tileset (zoom 0 to 8)\", \"sql\": \"COPY (SELECT 'cities' AS layer, name, population, ST_Point(lon, lat) AS geometry FROM (VALUES ('Rome', 2800000, 12.5, 41.9), ('Paris', 2100000, 2.35, 48.86)) t(name, population, lon, lat)) TO 'cities.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 8)\"}, {\"description\": \"Re-tile every layer of an existing tileset into a new archive\", \"sql\": \"COPY (SELECT layer, feature_id, properties, geometry FROM mvt.main.read_tiles('test/fixtures/sample.pmtiles')) TO 'sample-copy.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 4, name 'sample copy')\"}]",
+        "vgi.keywords": "[\"copy to\", \"export\", \"write\", \"tippecanoe\", \"tileset\", \"pmtiles\", \"mvt\", \"vector tiles\", \"basemap\"]",
+        "vgi.result_columns_schema": "[{\"name\": \"Count\", \"type\": \"BIGINT\", \"description\": \"Rows written (reported by COPY).\"}]",
+        "vgi.title": "Write PMTiles"
+      },
+      "write_pmtiles",
+      "layer",
+      "VARCHAR",
+      "Layer name for rows without a layer column (default: the file name without .pmtiles)"
+    ],
+    [
+      "mvt",
+      "mvt.pmtiles",
+      "to",
+      true,
+      "COPY ... TO format that encodes rows with a GEOMETRY column as a PMTiles vector tileset",
+      "Vector tiles (MVT) in a PMTiles v3 archive",
+      {
+        "vgi.category": "writers",
+        "vgi.doc_llm": "A COPY TO format, not a table function: use it as FORMAT 'mvt.pmtiles' in a COPY ... TO statement whose destination is a local .pmtiles path. Each row is a feature. The `GEOMETRY` column must be WGS84 lon/lat (or EPSG:3857). A `VARCHAR` column named `layer` (or `layer_column`) names each row's layer, so one COPY can write several layers via UNION ALL; without it every row goes to `layer` (default: the file name). A column named `feature_id` (or `id_column`) becomes the feature id, and a column named `properties` holding JSON objects is expanded into attributes, so read_tiles output can be written back. Every other column becomes an attribute (`VARCHAR`, numbers, `BOOLEAN`; dates as ISO text; lists and structs as JSON text); NULLs are omitted. Options: minzoom/maxzoom (default 0/14); minzoom_column/maxzoom_column for per-feature zoom ranges; simplify and buffer (pixels of a 256-pixel tile); extent (4096); max_tile_bytes (500000: fails rather than dropping features); max_tiles; name, description, attribution. ORDER BY sets drawing order. COPY reports the number of rows written.",
+        "vgi.doc_md": "## COPY ... TO (FORMAT 'mvt.pmtiles')\n\nEncode a query's rows as Mapbox Vector Tiles in a PMTiles archive. One row is one feature; a `layer` column puts rows in different layers of the same tiles, so a single COPY of a `UNION ALL` writes a whole multi-layer basemap.",
+        "vgi.example_queries": "[{\"description\": \"Write two cities as a one-layer tileset (zoom 0 to 8)\", \"sql\": \"COPY (SELECT 'cities' AS layer, name, population, ST_Point(lon, lat) AS geometry FROM (VALUES ('Rome', 2800000, 12.5, 41.9), ('Paris', 2100000, 2.35, 48.86)) t(name, population, lon, lat)) TO 'cities.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 8)\"}, {\"description\": \"Re-tile every layer of an existing tileset into a new archive\", \"sql\": \"COPY (SELECT layer, feature_id, properties, geometry FROM mvt.main.read_tiles('test/fixtures/sample.pmtiles')) TO 'sample-copy.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 4, name 'sample copy')\"}]",
+        "vgi.keywords": "[\"copy to\", \"export\", \"write\", \"tippecanoe\", \"tileset\", \"pmtiles\", \"mvt\", \"vector tiles\", \"basemap\"]",
+        "vgi.result_columns_schema": "[{\"name\": \"Count\", \"type\": \"BIGINT\", \"description\": \"Rows written (reported by COPY).\"}]",
+        "vgi.title": "Write PMTiles"
+      },
+      "write_pmtiles",
+      "layer_column",
+      "VARCHAR",
+      "Column holding each row's layer name (default: a column named layer)"
+    ],
+    [
+      "mvt",
+      "mvt.pmtiles",
+      "to",
+      true,
+      "COPY ... TO format that encodes rows with a GEOMETRY column as a PMTiles vector tileset",
+      "Vector tiles (MVT) in a PMTiles v3 archive",
+      {
+        "vgi.category": "writers",
+        "vgi.doc_llm": "A COPY TO format, not a table function: use it as FORMAT 'mvt.pmtiles' in a COPY ... TO statement whose destination is a local .pmtiles path. Each row is a feature. The `GEOMETRY` column must be WGS84 lon/lat (or EPSG:3857). A `VARCHAR` column named `layer` (or `layer_column`) names each row's layer, so one COPY can write several layers via UNION ALL; without it every row goes to `layer` (default: the file name). A column named `feature_id` (or `id_column`) becomes the feature id, and a column named `properties` holding JSON objects is expanded into attributes, so read_tiles output can be written back. Every other column becomes an attribute (`VARCHAR`, numbers, `BOOLEAN`; dates as ISO text; lists and structs as JSON text); NULLs are omitted. Options: minzoom/maxzoom (default 0/14); minzoom_column/maxzoom_column for per-feature zoom ranges; simplify and buffer (pixels of a 256-pixel tile); extent (4096); max_tile_bytes (500000: fails rather than dropping features); max_tiles; name, description, attribution. ORDER BY sets drawing order. COPY reports the number of rows written.",
+        "vgi.doc_md": "## COPY ... TO (FORMAT 'mvt.pmtiles')\n\nEncode a query's rows as Mapbox Vector Tiles in a PMTiles archive. One row is one feature; a `layer` column puts rows in different layers of the same tiles, so a single COPY of a `UNION ALL` writes a whole multi-layer basemap.",
+        "vgi.example_queries": "[{\"description\": \"Write two cities as a one-layer tileset (zoom 0 to 8)\", \"sql\": \"COPY (SELECT 'cities' AS layer, name, population, ST_Point(lon, lat) AS geometry FROM (VALUES ('Rome', 2800000, 12.5, 41.9), ('Paris', 2100000, 2.35, 48.86)) t(name, population, lon, lat)) TO 'cities.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 8)\"}, {\"description\": \"Re-tile every layer of an existing tileset into a new archive\", \"sql\": \"COPY (SELECT layer, feature_id, properties, geometry FROM mvt.main.read_tiles('test/fixtures/sample.pmtiles')) TO 'sample-copy.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 4, name 'sample copy')\"}]",
+        "vgi.keywords": "[\"copy to\", \"export\", \"write\", \"tippecanoe\", \"tileset\", \"pmtiles\", \"mvt\", \"vector tiles\", \"basemap\"]",
+        "vgi.result_columns_schema": "[{\"name\": \"Count\", \"type\": \"BIGINT\", \"description\": \"Rows written (reported by COPY).\"}]",
+        "vgi.title": "Write PMTiles"
+      },
+      "write_pmtiles",
+      "max_tile_bytes",
+      "BIGINT",
+      "Fail if a compressed tile is larger than this (0: no limit)"
+    ],
+    [
+      "mvt",
+      "mvt.pmtiles",
+      "to",
+      true,
+      "COPY ... TO format that encodes rows with a GEOMETRY column as a PMTiles vector tileset",
+      "Vector tiles (MVT) in a PMTiles v3 archive",
+      {
+        "vgi.category": "writers",
+        "vgi.doc_llm": "A COPY TO format, not a table function: use it as FORMAT 'mvt.pmtiles' in a COPY ... TO statement whose destination is a local .pmtiles path. Each row is a feature. The `GEOMETRY` column must be WGS84 lon/lat (or EPSG:3857). A `VARCHAR` column named `layer` (or `layer_column`) names each row's layer, so one COPY can write several layers via UNION ALL; without it every row goes to `layer` (default: the file name). A column named `feature_id` (or `id_column`) becomes the feature id, and a column named `properties` holding JSON objects is expanded into attributes, so read_tiles output can be written back. Every other column becomes an attribute (`VARCHAR`, numbers, `BOOLEAN`; dates as ISO text; lists and structs as JSON text); NULLs are omitted. Options: minzoom/maxzoom (default 0/14); minzoom_column/maxzoom_column for per-feature zoom ranges; simplify and buffer (pixels of a 256-pixel tile); extent (4096); max_tile_bytes (500000: fails rather than dropping features); max_tiles; name, description, attribution. ORDER BY sets drawing order. COPY reports the number of rows written.",
+        "vgi.doc_md": "## COPY ... TO (FORMAT 'mvt.pmtiles')\n\nEncode a query's rows as Mapbox Vector Tiles in a PMTiles archive. One row is one feature; a `layer` column puts rows in different layers of the same tiles, so a single COPY of a `UNION ALL` writes a whole multi-layer basemap.",
+        "vgi.example_queries": "[{\"description\": \"Write two cities as a one-layer tileset (zoom 0 to 8)\", \"sql\": \"COPY (SELECT 'cities' AS layer, name, population, ST_Point(lon, lat) AS geometry FROM (VALUES ('Rome', 2800000, 12.5, 41.9), ('Paris', 2100000, 2.35, 48.86)) t(name, population, lon, lat)) TO 'cities.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 8)\"}, {\"description\": \"Re-tile every layer of an existing tileset into a new archive\", \"sql\": \"COPY (SELECT layer, feature_id, properties, geometry FROM mvt.main.read_tiles('test/fixtures/sample.pmtiles')) TO 'sample-copy.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 4, name 'sample copy')\"}]",
+        "vgi.keywords": "[\"copy to\", \"export\", \"write\", \"tippecanoe\", \"tileset\", \"pmtiles\", \"mvt\", \"vector tiles\", \"basemap\"]",
+        "vgi.result_columns_schema": "[{\"name\": \"Count\", \"type\": \"BIGINT\", \"description\": \"Rows written (reported by COPY).\"}]",
+        "vgi.title": "Write PMTiles"
+      },
+      "write_pmtiles",
+      "max_tiles",
+      "BIGINT",
+      "Fail if the tileset would have more tiles than this"
+    ],
+    [
+      "mvt",
+      "mvt.pmtiles",
+      "to",
+      true,
+      "COPY ... TO format that encodes rows with a GEOMETRY column as a PMTiles vector tileset",
+      "Vector tiles (MVT) in a PMTiles v3 archive",
+      {
+        "vgi.category": "writers",
+        "vgi.doc_llm": "A COPY TO format, not a table function: use it as FORMAT 'mvt.pmtiles' in a COPY ... TO statement whose destination is a local .pmtiles path. Each row is a feature. The `GEOMETRY` column must be WGS84 lon/lat (or EPSG:3857). A `VARCHAR` column named `layer` (or `layer_column`) names each row's layer, so one COPY can write several layers via UNION ALL; without it every row goes to `layer` (default: the file name). A column named `feature_id` (or `id_column`) becomes the feature id, and a column named `properties` holding JSON objects is expanded into attributes, so read_tiles output can be written back. Every other column becomes an attribute (`VARCHAR`, numbers, `BOOLEAN`; dates as ISO text; lists and structs as JSON text); NULLs are omitted. Options: minzoom/maxzoom (default 0/14); minzoom_column/maxzoom_column for per-feature zoom ranges; simplify and buffer (pixels of a 256-pixel tile); extent (4096); max_tile_bytes (500000: fails rather than dropping features); max_tiles; name, description, attribution. ORDER BY sets drawing order. COPY reports the number of rows written.",
+        "vgi.doc_md": "## COPY ... TO (FORMAT 'mvt.pmtiles')\n\nEncode a query's rows as Mapbox Vector Tiles in a PMTiles archive. One row is one feature; a `layer` column puts rows in different layers of the same tiles, so a single COPY of a `UNION ALL` writes a whole multi-layer basemap.",
+        "vgi.example_queries": "[{\"description\": \"Write two cities as a one-layer tileset (zoom 0 to 8)\", \"sql\": \"COPY (SELECT 'cities' AS layer, name, population, ST_Point(lon, lat) AS geometry FROM (VALUES ('Rome', 2800000, 12.5, 41.9), ('Paris', 2100000, 2.35, 48.86)) t(name, population, lon, lat)) TO 'cities.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 8)\"}, {\"description\": \"Re-tile every layer of an existing tileset into a new archive\", \"sql\": \"COPY (SELECT layer, feature_id, properties, geometry FROM mvt.main.read_tiles('test/fixtures/sample.pmtiles')) TO 'sample-copy.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 4, name 'sample copy')\"}]",
+        "vgi.keywords": "[\"copy to\", \"export\", \"write\", \"tippecanoe\", \"tileset\", \"pmtiles\", \"mvt\", \"vector tiles\", \"basemap\"]",
+        "vgi.result_columns_schema": "[{\"name\": \"Count\", \"type\": \"BIGINT\", \"description\": \"Rows written (reported by COPY).\"}]",
+        "vgi.title": "Write PMTiles"
+      },
+      "write_pmtiles",
+      "maxzoom",
+      "BIGINT",
+      "Highest zoom level to write"
+    ],
+    [
+      "mvt",
+      "mvt.pmtiles",
+      "to",
+      true,
+      "COPY ... TO format that encodes rows with a GEOMETRY column as a PMTiles vector tileset",
+      "Vector tiles (MVT) in a PMTiles v3 archive",
+      {
+        "vgi.category": "writers",
+        "vgi.doc_llm": "A COPY TO format, not a table function: use it as FORMAT 'mvt.pmtiles' in a COPY ... TO statement whose destination is a local .pmtiles path. Each row is a feature. The `GEOMETRY` column must be WGS84 lon/lat (or EPSG:3857). A `VARCHAR` column named `layer` (or `layer_column`) names each row's layer, so one COPY can write several layers via UNION ALL; without it every row goes to `layer` (default: the file name). A column named `feature_id` (or `id_column`) becomes the feature id, and a column named `properties` holding JSON objects is expanded into attributes, so read_tiles output can be written back. Every other column becomes an attribute (`VARCHAR`, numbers, `BOOLEAN`; dates as ISO text; lists and structs as JSON text); NULLs are omitted. Options: minzoom/maxzoom (default 0/14); minzoom_column/maxzoom_column for per-feature zoom ranges; simplify and buffer (pixels of a 256-pixel tile); extent (4096); max_tile_bytes (500000: fails rather than dropping features); max_tiles; name, description, attribution. ORDER BY sets drawing order. COPY reports the number of rows written.",
+        "vgi.doc_md": "## COPY ... TO (FORMAT 'mvt.pmtiles')\n\nEncode a query's rows as Mapbox Vector Tiles in a PMTiles archive. One row is one feature; a `layer` column puts rows in different layers of the same tiles, so a single COPY of a `UNION ALL` writes a whole multi-layer basemap.",
+        "vgi.example_queries": "[{\"description\": \"Write two cities as a one-layer tileset (zoom 0 to 8)\", \"sql\": \"COPY (SELECT 'cities' AS layer, name, population, ST_Point(lon, lat) AS geometry FROM (VALUES ('Rome', 2800000, 12.5, 41.9), ('Paris', 2100000, 2.35, 48.86)) t(name, population, lon, lat)) TO 'cities.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 8)\"}, {\"description\": \"Re-tile every layer of an existing tileset into a new archive\", \"sql\": \"COPY (SELECT layer, feature_id, properties, geometry FROM mvt.main.read_tiles('test/fixtures/sample.pmtiles')) TO 'sample-copy.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 4, name 'sample copy')\"}]",
+        "vgi.keywords": "[\"copy to\", \"export\", \"write\", \"tippecanoe\", \"tileset\", \"pmtiles\", \"mvt\", \"vector tiles\", \"basemap\"]",
+        "vgi.result_columns_schema": "[{\"name\": \"Count\", \"type\": \"BIGINT\", \"description\": \"Rows written (reported by COPY).\"}]",
+        "vgi.title": "Write PMTiles"
+      },
+      "write_pmtiles",
+      "maxzoom_column",
+      "VARCHAR",
+      "Column giving the highest zoom each feature appears at"
+    ],
+    [
+      "mvt",
+      "mvt.pmtiles",
+      "to",
+      true,
+      "COPY ... TO format that encodes rows with a GEOMETRY column as a PMTiles vector tileset",
+      "Vector tiles (MVT) in a PMTiles v3 archive",
+      {
+        "vgi.category": "writers",
+        "vgi.doc_llm": "A COPY TO format, not a table function: use it as FORMAT 'mvt.pmtiles' in a COPY ... TO statement whose destination is a local .pmtiles path. Each row is a feature. The `GEOMETRY` column must be WGS84 lon/lat (or EPSG:3857). A `VARCHAR` column named `layer` (or `layer_column`) names each row's layer, so one COPY can write several layers via UNION ALL; without it every row goes to `layer` (default: the file name). A column named `feature_id` (or `id_column`) becomes the feature id, and a column named `properties` holding JSON objects is expanded into attributes, so read_tiles output can be written back. Every other column becomes an attribute (`VARCHAR`, numbers, `BOOLEAN`; dates as ISO text; lists and structs as JSON text); NULLs are omitted. Options: minzoom/maxzoom (default 0/14); minzoom_column/maxzoom_column for per-feature zoom ranges; simplify and buffer (pixels of a 256-pixel tile); extent (4096); max_tile_bytes (500000: fails rather than dropping features); max_tiles; name, description, attribution. ORDER BY sets drawing order. COPY reports the number of rows written.",
+        "vgi.doc_md": "## COPY ... TO (FORMAT 'mvt.pmtiles')\n\nEncode a query's rows as Mapbox Vector Tiles in a PMTiles archive. One row is one feature; a `layer` column puts rows in different layers of the same tiles, so a single COPY of a `UNION ALL` writes a whole multi-layer basemap.",
+        "vgi.example_queries": "[{\"description\": \"Write two cities as a one-layer tileset (zoom 0 to 8)\", \"sql\": \"COPY (SELECT 'cities' AS layer, name, population, ST_Point(lon, lat) AS geometry FROM (VALUES ('Rome', 2800000, 12.5, 41.9), ('Paris', 2100000, 2.35, 48.86)) t(name, population, lon, lat)) TO 'cities.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 8)\"}, {\"description\": \"Re-tile every layer of an existing tileset into a new archive\", \"sql\": \"COPY (SELECT layer, feature_id, properties, geometry FROM mvt.main.read_tiles('test/fixtures/sample.pmtiles')) TO 'sample-copy.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 4, name 'sample copy')\"}]",
+        "vgi.keywords": "[\"copy to\", \"export\", \"write\", \"tippecanoe\", \"tileset\", \"pmtiles\", \"mvt\", \"vector tiles\", \"basemap\"]",
+        "vgi.result_columns_schema": "[{\"name\": \"Count\", \"type\": \"BIGINT\", \"description\": \"Rows written (reported by COPY).\"}]",
+        "vgi.title": "Write PMTiles"
+      },
+      "write_pmtiles",
+      "minzoom",
+      "BIGINT",
+      "Lowest zoom level to write"
+    ],
+    [
+      "mvt",
+      "mvt.pmtiles",
+      "to",
+      true,
+      "COPY ... TO format that encodes rows with a GEOMETRY column as a PMTiles vector tileset",
+      "Vector tiles (MVT) in a PMTiles v3 archive",
+      {
+        "vgi.category": "writers",
+        "vgi.doc_llm": "A COPY TO format, not a table function: use it as FORMAT 'mvt.pmtiles' in a COPY ... TO statement whose destination is a local .pmtiles path. Each row is a feature. The `GEOMETRY` column must be WGS84 lon/lat (or EPSG:3857). A `VARCHAR` column named `layer` (or `layer_column`) names each row's layer, so one COPY can write several layers via UNION ALL; without it every row goes to `layer` (default: the file name). A column named `feature_id` (or `id_column`) becomes the feature id, and a column named `properties` holding JSON objects is expanded into attributes, so read_tiles output can be written back. Every other column becomes an attribute (`VARCHAR`, numbers, `BOOLEAN`; dates as ISO text; lists and structs as JSON text); NULLs are omitted. Options: minzoom/maxzoom (default 0/14); minzoom_column/maxzoom_column for per-feature zoom ranges; simplify and buffer (pixels of a 256-pixel tile); extent (4096); max_tile_bytes (500000: fails rather than dropping features); max_tiles; name, description, attribution. ORDER BY sets drawing order. COPY reports the number of rows written.",
+        "vgi.doc_md": "## COPY ... TO (FORMAT 'mvt.pmtiles')\n\nEncode a query's rows as Mapbox Vector Tiles in a PMTiles archive. One row is one feature; a `layer` column puts rows in different layers of the same tiles, so a single COPY of a `UNION ALL` writes a whole multi-layer basemap.",
+        "vgi.example_queries": "[{\"description\": \"Write two cities as a one-layer tileset (zoom 0 to 8)\", \"sql\": \"COPY (SELECT 'cities' AS layer, name, population, ST_Point(lon, lat) AS geometry FROM (VALUES ('Rome', 2800000, 12.5, 41.9), ('Paris', 2100000, 2.35, 48.86)) t(name, population, lon, lat)) TO 'cities.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 8)\"}, {\"description\": \"Re-tile every layer of an existing tileset into a new archive\", \"sql\": \"COPY (SELECT layer, feature_id, properties, geometry FROM mvt.main.read_tiles('test/fixtures/sample.pmtiles')) TO 'sample-copy.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 4, name 'sample copy')\"}]",
+        "vgi.keywords": "[\"copy to\", \"export\", \"write\", \"tippecanoe\", \"tileset\", \"pmtiles\", \"mvt\", \"vector tiles\", \"basemap\"]",
+        "vgi.result_columns_schema": "[{\"name\": \"Count\", \"type\": \"BIGINT\", \"description\": \"Rows written (reported by COPY).\"}]",
+        "vgi.title": "Write PMTiles"
+      },
+      "write_pmtiles",
+      "minzoom_column",
+      "VARCHAR",
+      "Column giving the lowest zoom each feature appears at"
+    ],
+    [
+      "mvt",
+      "mvt.pmtiles",
+      "to",
+      true,
+      "COPY ... TO format that encodes rows with a GEOMETRY column as a PMTiles vector tileset",
+      "Vector tiles (MVT) in a PMTiles v3 archive",
+      {
+        "vgi.category": "writers",
+        "vgi.doc_llm": "A COPY TO format, not a table function: use it as FORMAT 'mvt.pmtiles' in a COPY ... TO statement whose destination is a local .pmtiles path. Each row is a feature. The `GEOMETRY` column must be WGS84 lon/lat (or EPSG:3857). A `VARCHAR` column named `layer` (or `layer_column`) names each row's layer, so one COPY can write several layers via UNION ALL; without it every row goes to `layer` (default: the file name). A column named `feature_id` (or `id_column`) becomes the feature id, and a column named `properties` holding JSON objects is expanded into attributes, so read_tiles output can be written back. Every other column becomes an attribute (`VARCHAR`, numbers, `BOOLEAN`; dates as ISO text; lists and structs as JSON text); NULLs are omitted. Options: minzoom/maxzoom (default 0/14); minzoom_column/maxzoom_column for per-feature zoom ranges; simplify and buffer (pixels of a 256-pixel tile); extent (4096); max_tile_bytes (500000: fails rather than dropping features); max_tiles; name, description, attribution. ORDER BY sets drawing order. COPY reports the number of rows written.",
+        "vgi.doc_md": "## COPY ... TO (FORMAT 'mvt.pmtiles')\n\nEncode a query's rows as Mapbox Vector Tiles in a PMTiles archive. One row is one feature; a `layer` column puts rows in different layers of the same tiles, so a single COPY of a `UNION ALL` writes a whole multi-layer basemap.",
+        "vgi.example_queries": "[{\"description\": \"Write two cities as a one-layer tileset (zoom 0 to 8)\", \"sql\": \"COPY (SELECT 'cities' AS layer, name, population, ST_Point(lon, lat) AS geometry FROM (VALUES ('Rome', 2800000, 12.5, 41.9), ('Paris', 2100000, 2.35, 48.86)) t(name, population, lon, lat)) TO 'cities.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 8)\"}, {\"description\": \"Re-tile every layer of an existing tileset into a new archive\", \"sql\": \"COPY (SELECT layer, feature_id, properties, geometry FROM mvt.main.read_tiles('test/fixtures/sample.pmtiles')) TO 'sample-copy.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 4, name 'sample copy')\"}]",
+        "vgi.keywords": "[\"copy to\", \"export\", \"write\", \"tippecanoe\", \"tileset\", \"pmtiles\", \"mvt\", \"vector tiles\", \"basemap\"]",
+        "vgi.result_columns_schema": "[{\"name\": \"Count\", \"type\": \"BIGINT\", \"description\": \"Rows written (reported by COPY).\"}]",
+        "vgi.title": "Write PMTiles"
+      },
+      "write_pmtiles",
+      "name",
+      "VARCHAR",
+      "Tileset name in the metadata (default: the file name)"
+    ],
+    [
+      "mvt",
+      "mvt.pmtiles",
+      "to",
+      true,
+      "COPY ... TO format that encodes rows with a GEOMETRY column as a PMTiles vector tileset",
+      "Vector tiles (MVT) in a PMTiles v3 archive",
+      {
+        "vgi.category": "writers",
+        "vgi.doc_llm": "A COPY TO format, not a table function: use it as FORMAT 'mvt.pmtiles' in a COPY ... TO statement whose destination is a local .pmtiles path. Each row is a feature. The `GEOMETRY` column must be WGS84 lon/lat (or EPSG:3857). A `VARCHAR` column named `layer` (or `layer_column`) names each row's layer, so one COPY can write several layers via UNION ALL; without it every row goes to `layer` (default: the file name). A column named `feature_id` (or `id_column`) becomes the feature id, and a column named `properties` holding JSON objects is expanded into attributes, so read_tiles output can be written back. Every other column becomes an attribute (`VARCHAR`, numbers, `BOOLEAN`; dates as ISO text; lists and structs as JSON text); NULLs are omitted. Options: minzoom/maxzoom (default 0/14); minzoom_column/maxzoom_column for per-feature zoom ranges; simplify and buffer (pixels of a 256-pixel tile); extent (4096); max_tile_bytes (500000: fails rather than dropping features); max_tiles; name, description, attribution. ORDER BY sets drawing order. COPY reports the number of rows written.",
+        "vgi.doc_md": "## COPY ... TO (FORMAT 'mvt.pmtiles')\n\nEncode a query's rows as Mapbox Vector Tiles in a PMTiles archive. One row is one feature; a `layer` column puts rows in different layers of the same tiles, so a single COPY of a `UNION ALL` writes a whole multi-layer basemap.",
+        "vgi.example_queries": "[{\"description\": \"Write two cities as a one-layer tileset (zoom 0 to 8)\", \"sql\": \"COPY (SELECT 'cities' AS layer, name, population, ST_Point(lon, lat) AS geometry FROM (VALUES ('Rome', 2800000, 12.5, 41.9), ('Paris', 2100000, 2.35, 48.86)) t(name, population, lon, lat)) TO 'cities.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 8)\"}, {\"description\": \"Re-tile every layer of an existing tileset into a new archive\", \"sql\": \"COPY (SELECT layer, feature_id, properties, geometry FROM mvt.main.read_tiles('test/fixtures/sample.pmtiles')) TO 'sample-copy.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 4, name 'sample copy')\"}]",
+        "vgi.keywords": "[\"copy to\", \"export\", \"write\", \"tippecanoe\", \"tileset\", \"pmtiles\", \"mvt\", \"vector tiles\", \"basemap\"]",
+        "vgi.result_columns_schema": "[{\"name\": \"Count\", \"type\": \"BIGINT\", \"description\": \"Rows written (reported by COPY).\"}]",
+        "vgi.title": "Write PMTiles"
+      },
+      "write_pmtiles",
+      "properties_column",
+      "VARCHAR",
+      "Column of JSON objects whose keys become attributes (default: a column named properties)"
+    ],
+    [
+      "mvt",
+      "mvt.pmtiles",
+      "to",
+      true,
+      "COPY ... TO format that encodes rows with a GEOMETRY column as a PMTiles vector tileset",
+      "Vector tiles (MVT) in a PMTiles v3 archive",
+      {
+        "vgi.category": "writers",
+        "vgi.doc_llm": "A COPY TO format, not a table function: use it as FORMAT 'mvt.pmtiles' in a COPY ... TO statement whose destination is a local .pmtiles path. Each row is a feature. The `GEOMETRY` column must be WGS84 lon/lat (or EPSG:3857). A `VARCHAR` column named `layer` (or `layer_column`) names each row's layer, so one COPY can write several layers via UNION ALL; without it every row goes to `layer` (default: the file name). A column named `feature_id` (or `id_column`) becomes the feature id, and a column named `properties` holding JSON objects is expanded into attributes, so read_tiles output can be written back. Every other column becomes an attribute (`VARCHAR`, numbers, `BOOLEAN`; dates as ISO text; lists and structs as JSON text); NULLs are omitted. Options: minzoom/maxzoom (default 0/14); minzoom_column/maxzoom_column for per-feature zoom ranges; simplify and buffer (pixels of a 256-pixel tile); extent (4096); max_tile_bytes (500000: fails rather than dropping features); max_tiles; name, description, attribution. ORDER BY sets drawing order. COPY reports the number of rows written.",
+        "vgi.doc_md": "## COPY ... TO (FORMAT 'mvt.pmtiles')\n\nEncode a query's rows as Mapbox Vector Tiles in a PMTiles archive. One row is one feature; a `layer` column puts rows in different layers of the same tiles, so a single COPY of a `UNION ALL` writes a whole multi-layer basemap.",
+        "vgi.example_queries": "[{\"description\": \"Write two cities as a one-layer tileset (zoom 0 to 8)\", \"sql\": \"COPY (SELECT 'cities' AS layer, name, population, ST_Point(lon, lat) AS geometry FROM (VALUES ('Rome', 2800000, 12.5, 41.9), ('Paris', 2100000, 2.35, 48.86)) t(name, population, lon, lat)) TO 'cities.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 8)\"}, {\"description\": \"Re-tile every layer of an existing tileset into a new archive\", \"sql\": \"COPY (SELECT layer, feature_id, properties, geometry FROM mvt.main.read_tiles('test/fixtures/sample.pmtiles')) TO 'sample-copy.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 4, name 'sample copy')\"}]",
+        "vgi.keywords": "[\"copy to\", \"export\", \"write\", \"tippecanoe\", \"tileset\", \"pmtiles\", \"mvt\", \"vector tiles\", \"basemap\"]",
+        "vgi.result_columns_schema": "[{\"name\": \"Count\", \"type\": \"BIGINT\", \"description\": \"Rows written (reported by COPY).\"}]",
+        "vgi.title": "Write PMTiles"
+      },
+      "write_pmtiles",
+      "simplify",
+      "DOUBLE",
+      "Line and polygon simplification tolerance, in pixels of a 256-pixel tile (0 turns it off)"
+    ]
+  ]
+}

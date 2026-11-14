@@ -1,0 +1,213 @@
+{
+  "schema_version": 1,
+  "repository": "Query-farm/vgi-mvt",
+  "revision": "81282ed09ae9793b1ca91860e1f4cb32d157aeb6",
+  "captured_at": "2026-11-14T22:44:44.028220+00:00",
+  "default_schema": "main",
+  "scope": "all_public_functions_and_tables",
+  "complete": true,
+  "evidence": [
+    {
+      "path": "coverage/functions-current.json",
+      "sha256": "081199312f20a474aa5c659c8f3ad8067459f9cc6cdc266b5069d11f5352dc0d",
+      "description": "Actual complete fixed and selected-fixture runtime catalog, full arguments/output columns and COPY format registry; reviewed source compatibility"
+    },
+    {
+      "path": "coverage/tables-current.json",
+      "sha256": "04f5da44ed9af4dab84b21d858b62437b6144266bc6dc8941055de1ddae64610",
+      "description": "Actual complete fixed and selected-fixture runtime catalog, full arguments/output columns and COPY format registry; reviewed source compatibility"
+    },
+    {
+      "path": "coverage/views-current.json",
+      "sha256": "026eb04db62d50d931438388bb5a71a8935b225564e2861303bbdf6f9f8373ae",
+      "description": "Actual complete fixed and selected-fixture runtime catalog, full arguments/output columns and COPY format registry; reviewed source compatibility"
+    },
+    {
+      "path": "coverage/arguments-current.json",
+      "sha256": "931861bc365f1989bc9e3767da6c7afbaa4c3177f6c23c6dd3694eb0b7db9b9e",
+      "description": "Actual complete fixed and selected-fixture runtime catalog, full arguments/output columns and COPY format registry; reviewed source compatibility"
+    },
+    {
+      "path": "coverage/catalog-metadata-current.json",
+      "sha256": "2a09f8427911733d7de10701b27610715e1309b79667bd61b0fe0bafda856915",
+      "description": "Actual complete fixed and selected-fixture runtime catalog, full arguments/output columns and COPY format registry; reviewed source compatibility"
+    },
+    {
+      "path": "coverage/copy-formats-current.json",
+      "sha256": "712bb92683c8c4bfa1aaaf91a3f8878d3c6d2ec60a55d57b7d931549afce57c7",
+      "description": "Actual complete fixed and selected-fixture runtime catalog, full arguments/output columns and COPY format registry; reviewed source compatibility"
+    },
+    {
+      "path": "coverage/selected-functions-current.json",
+      "sha256": "2a8fa9f413fe6c981db750255b79cf3ea628df787a8944a1a61966ca0c38a245",
+      "description": "Actual complete fixed and selected-fixture runtime catalog, full arguments/output columns and COPY format registry; reviewed source compatibility"
+    },
+    {
+      "path": "coverage/selected-tables-current.json",
+      "sha256": "d181e7cd9f93a4f3231d475faecbe0b398547615f0b3a771fe7d919fa4ee0cbf",
+      "description": "Actual complete fixed and selected-fixture runtime catalog, full arguments/output columns and COPY format registry; reviewed source compatibility"
+    },
+    {
+      "path": "coverage/selected-views-current.json",
+      "sha256": "324dd21cfa081d5df6a2bb48c41a2c3760049dd3edbc81727574533c6ecc7fb1",
+      "description": "Actual complete fixed and selected-fixture runtime catalog, full arguments/output columns and COPY format registry; reviewed source compatibility"
+    },
+    {
+      "path": "coverage/selected-counts-current.json",
+      "sha256": "c8d1096a671eb1c2b51f1a399ebdc5f8d9020f6a6eb7328fbbfad6094c0877d8",
+      "description": "Actual complete fixed and selected-fixture runtime catalog, full arguments/output columns and COPY format registry; reviewed source compatibility"
+    },
+    {
+      "path": "coverage/read_mvt-columns-current.json",
+      "sha256": "4e4a1e56bb515ad80a50395fad1e2bd18911e8e6e7865df03de313b95a9d3760",
+      "description": "Actual complete fixed and selected-fixture runtime catalog, full arguments/output columns and COPY format registry; reviewed source compatibility"
+    },
+    {
+      "path": "coverage/mvt_decode-columns-current.json",
+      "sha256": "2ac8a440ca4c01b14c11b0eed6221199a1c81eef2fa4f65c46946af246e095d1",
+      "description": "Actual complete fixed and selected-fixture runtime catalog, full arguments/output columns and COPY format registry; reviewed source compatibility"
+    },
+    {
+      "path": "coverage/read_tiles-columns-current.json",
+      "sha256": "90d44e549b9d1c5d5262205e3f461d9ccc6aac348b603d30288dd85dce443c7f",
+      "description": "Actual complete fixed and selected-fixture runtime catalog, full arguments/output columns and COPY format registry; reviewed source compatibility"
+    },
+    {
+      "path": "coverage/tileset_layers-columns-current.json",
+      "sha256": "fa1b955549e4a03d7ab1e14b164a1d3c3ac32d6c8485433c5ae7074f068eacd9",
+      "description": "Actual complete fixed and selected-fixture runtime catalog, full arguments/output columns and COPY format registry; reviewed source compatibility"
+    },
+    {
+      "path": "coverage/tileset_metadata-columns-current.json",
+      "sha256": "16ce43df31ea166524efed65c00587b18d5fd07b91ffea34b8ddc5f344952a9b",
+      "description": "Actual complete fixed and selected-fixture runtime catalog, full arguments/output columns and COPY format registry; reviewed source compatibility"
+    },
+    {
+      "path": "coverage/areas-columns-current.json",
+      "sha256": "865f652ff9da5eb312ce44d161f50c6152c1c5d5d041fbab08c8eb5b65b9a8f8",
+      "description": "Actual complete fixed and selected-fixture runtime catalog, full arguments/output columns and COPY format registry; reviewed source compatibility"
+    },
+    {
+      "path": "coverage/roads-columns-current.json",
+      "sha256": "6db68a3e1c73dd9ba977bd4f9c0f9e68d80aaacc474ca108b75866899491e886",
+      "description": "Actual complete fixed and selected-fixture runtime catalog, full arguments/output columns and COPY format registry; reviewed source compatibility"
+    },
+    {
+      "path": "coverage/write_pmtiles-result-current.json",
+      "sha256": "b34b2ec525e4a66043ee25401558264fb04c23292dfb815709f569331ca66ad8",
+      "description": "Actual complete fixed and selected-fixture runtime catalog, full arguments/output columns and COPY format registry; reviewed source compatibility"
+    },
+    {
+      "path": "coverage/layers-probe-current.json",
+      "sha256": "2de68dda8fb85c690ec9dce78b8369cc50888904601601a9409372d82b166043",
+      "description": "Actual complete fixed and selected-fixture runtime catalog, full arguments/output columns and COPY format registry; reviewed source compatibility"
+    },
+    {
+      "path": "coverage/metadata-probe-current.json",
+      "sha256": "b540ee1c9bfcba09cce57f99f3704fa0e94d0d34427d0d86399f956dbfdc6265",
+      "description": "Actual complete fixed and selected-fixture runtime catalog, full arguments/output columns and COPY format registry; reviewed source compatibility"
+    },
+    {
+      "path": "coverage/read-probe-current.json",
+      "sha256": "2b65fbe0085c6fb1324b5857797f82f293c613af5f9bb0f94ed32082b135b5df",
+      "description": "Actual complete fixed and selected-fixture runtime catalog, full arguments/output columns and COPY format registry; reviewed source compatibility"
+    },
+    {
+      "path": "coverage/source-compatibility.json",
+      "sha256": "5c0a7d578db2e6112c34ad7269e2c97846af9338dd21bf4b1041e8d2512a74d3",
+      "description": "Actual complete fixed and selected-fixture runtime catalog, full arguments/output columns and COPY format registry; reviewed source compatibility"
+    }
+  ],
+  "objects": [
+    {
+      "schema": "main",
+      "name": "mvt_decode",
+      "kind": "function",
+      "authentication": "none",
+      "access": "read",
+      "signatures": [
+        "mvt_decode(coordinates VARCHAR, data TABLE, layer VARCHAR) -> TABLE(layer VARCHAR, z INTEGER, x INTEGER, y INTEGER, feature_id UBIGINT, geometry_type VARCHAR, geometry GEOMETRY('OGC:CRS84'), properties JSON)"
+      ]
+    },
+    {
+      "schema": "main",
+      "name": "read_mvt",
+      "kind": "function",
+      "authentication": "none",
+      "access": "read",
+      "signatures": [
+        "read_mvt(coordinates VARCHAR, layer VARCHAR, source VARCHAR, x BIGINT, y BIGINT, z BIGINT) -> TABLE(layer VARCHAR, z INTEGER, x INTEGER, y INTEGER, feature_id UBIGINT, geometry_type VARCHAR, geometry GEOMETRY('OGC:CRS84'), properties JSON)"
+      ]
+    },
+    {
+      "schema": "main",
+      "name": "read_tiles",
+      "kind": "function",
+      "authentication": "none",
+      "access": "read",
+      "signatures": [
+        "read_tiles(coordinates VARCHAR, east DOUBLE, layer VARCHAR, max_tiles BIGINT, north DOUBLE, source VARCHAR, south DOUBLE, tile_edges VARCHAR, west DOUBLE, zoom BIGINT) -> TABLE(layer VARCHAR, z INTEGER, x INTEGER, y INTEGER, feature_id UBIGINT, geometry_type VARCHAR, geometry GEOMETRY('EPSG:3857'), properties JSON)"
+      ]
+    },
+    {
+      "schema": "main",
+      "name": "tileset_layers",
+      "kind": "function",
+      "authentication": "none",
+      "access": "read",
+      "signatures": [
+        "tileset_layers(source VARCHAR) -> TABLE(layer VARCHAR, field VARCHAR, type VARCHAR, description VARCHAR, minzoom INTEGER, maxzoom INTEGER)"
+      ]
+    },
+    {
+      "schema": "main",
+      "name": "tileset_metadata",
+      "kind": "function",
+      "authentication": "none",
+      "access": "read",
+      "signatures": [
+        "tileset_metadata(source VARCHAR) -> TABLE(key VARCHAR, value VARCHAR)"
+      ]
+    },
+    {
+      "schema": "main",
+      "name": "write_pmtiles",
+      "kind": "function",
+      "authentication": "none",
+      "access": "write",
+      "signatures": [
+        "write_pmtiles(attribution VARCHAR, buffer DOUBLE, description VARCHAR, extent BIGINT, geometry_column VARCHAR, id_column VARCHAR, layer VARCHAR, layer_column VARCHAR, max_tile_bytes BIGINT, max_tiles BIGINT, maxzoom BIGINT, maxzoom_column VARCHAR, minzoom BIGINT, minzoom_column VARCHAR, name VARCHAR, properties_column VARCHAR, simplify DOUBLE) -> COPY Count BIGINT"
+      ]
+    },
+    {
+      "schema": "main",
+      "name": "areas",
+      "kind": "table",
+      "authentication": "none",
+      "access": "read",
+      "signatures": [
+        "TABLE(layer VARCHAR, z INTEGER, x INTEGER, y INTEGER, feature_id UBIGINT, geometry_type VARCHAR, geometry GEOMETRY('EPSG:3857'), properties JSON, name VARCHAR)"
+      ]
+    },
+    {
+      "schema": "main",
+      "name": "roads",
+      "kind": "table",
+      "authentication": "none",
+      "access": "read",
+      "signatures": [
+        "TABLE(layer VARCHAR, z INTEGER, x INTEGER, y INTEGER, feature_id UBIGINT, geometry_type VARCHAR, geometry GEOMETRY('EPSG:3857'), properties JSON, name VARCHAR, kind VARCHAR)"
+      ]
+    }
+  ],
+  "launch": "uvx --python 3.13 --from git+https://github.com/Query-farm/vgi-mvt@81282ed09ae9793b1ca91860e1f4cb32d157aeb6 vgi-mvt-worker",
+  "runtime": "Haybarn2.0.0rc11",
+  "configuration": {
+    "base_catalog": "mvt without tileset option",
+    "selected_catalog": "fixture_layers with fixtures/edges.pmtiles, zoom3, coordinates web_mercator, tile_edges merge, max_tiles64",
+    "fixed_named_surfaces": 6,
+    "selected_layer_tables": 2,
+    "scope_limitation": "Complete for these explicit configurations only; future selected archives may add different table names or columns."
+  },
+  "review_notes": "Unconfigured fixed catalog has six functions (including COPY writer) and no tables/views. Selected edges.pmtiles configuration adds areas and roads tables. Complete snapshot is the union for these documented configurations: eight logical named surfaces. Arbitrary future tilesets have data-dependent names/schema; not assigned an invented global static denominator."
+}

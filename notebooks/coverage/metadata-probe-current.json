@@ -1,0 +1,58 @@
+{
+  "query": "SELECT * FROM mvt.main.tileset_metadata('fixtures/edges.pmtiles')",
+  "captured_at": "2026-11-14T22:44:44.055441+00:00",
+  "columns": [
+    "key",
+    "value"
+  ],
+  "rows": [
+    [
+      "bounds",
+      "-20,10,25,55"
+    ],
+    [
+      "center",
+      "2.5000000,32.5000000,0"
+    ],
+    [
+      "description",
+      ""
+    ],
+    [
+      "format",
+      "pmtiles"
+    ],
+    [
+      "maxzoom",
+      "3"
+    ],
+    [
+      "minzoom",
+      "0"
+    ],
+    [
+      "name",
+      "vgi-mvt-edges"
+    ],
+    [
+      "scheme",
+      "xyz"
+    ],
+    [
+      "tilestats",
+      "{\"layerCount\": 2, \"layers\": [{\"layer\": \"roads\", \"count\": 2, \"geometry\": \"LineString\", \"attributeCount\": 2, \"attributes\": [{\"attribute\": \"name\", \"count\": 2, \"type\": \"string\", \"values\": [\"Diagonal\", \"Short\"]}, {\"attribute\": \"kind\", \"count\": 2, \"type\": \"string\", \"values\": [\"path\", \"road\"]}]}, {\"layer\": \"areas\", \"count\": 2, \"geometry\": \"Polygon\", \"attributeCount\": 1, \"attributes\": [{\"attribute\": \"name\", \"count\": 2, \"type\": \"string\", \"values\": [\"One tile\", \"Four tiles\"]}]}]}"
+    ],
+    [
+      "type",
+      "overlay"
+    ],
+    [
+      "vector_layers",
+      "[{\"id\": \"roads\", \"description\": \"\", \"minzoom\": 0, \"maxzoom\": 3, \"fields\": {\"name\": \"String\", \"kind\": \"String\"}}, {\"id\": \"areas\", \"description\": \"\", \"minzoom\": 0, \"maxzoom\": 3, \"fields\": {\"name\": \"String\"}}]"
+    ],
+    [
+      "version",
+      "2"
+    ]
+  ]
+}

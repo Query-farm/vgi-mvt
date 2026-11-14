@@ -1,0 +1,72 @@
+{
+  "query": "SELECT * FROM duckdb_tables() WHERE database_name='fixture_layers'",
+  "captured_at": "2026-11-14T22:44:39.064502+00:00",
+  "columns": [
+    "database_name",
+    "database_oid",
+    "schema_name",
+    "schema_oid",
+    "table_name",
+    "table_oid",
+    "comment",
+    "tags",
+    "internal",
+    "temporary",
+    "has_primary_key",
+    "estimated_size",
+    "column_count",
+    "index_count",
+    "check_constraint_count",
+    "sql"
+  ],
+  "rows": [
+    [
+      "fixture_layers",
+      23156,
+      "main",
+      23157,
+      "areas",
+      23159,
+      "Features of the `areas` layer of fixtures/edges.pmtiles, read at zoom 3.",
+      {
+        "mvt.attributes": "{\"name\": \"String\"}",
+        "mvt.layer": "areas",
+        "mvt.tileset": "fixtures/edges.pmtiles",
+        "mvt.zoom": "3",
+        "vgi.title": "Layer areas"
+      },
+      false,
+      false,
+      false,
+      0,
+      9,
+      0,
+      0,
+      "CREATE TABLE areas(layer VARCHAR, z INTEGER, x INTEGER, y INTEGER, feature_id UBIGINT, geometry_type VARCHAR, geometry GEOMETRY('EPSG:3857'), properties JSON, \"name\" VARCHAR);"
+    ],
+    [
+      "fixture_layers",
+      23156,
+      "main",
+      23157,
+      "roads",
+      23158,
+      "Features of the `roads` layer of fixtures/edges.pmtiles, read at zoom 3.",
+      {
+        "mvt.attributes": "{\"name\": \"String\", \"kind\": \"String\"}",
+        "mvt.layer": "roads",
+        "mvt.tileset": "fixtures/edges.pmtiles",
+        "mvt.zoom": "3",
+        "vgi.title": "Layer roads"
+      },
+      false,
+      false,
+      false,
+      0,
+      10,
+      0,
+      0,
+      "CREATE TABLE roads(layer VARCHAR, z INTEGER, x INTEGER, y INTEGER, feature_id UBIGINT, geometry_type VARCHAR, geometry GEOMETRY('EPSG:3857'), properties JSON, \"name\" VARCHAR, kind VARCHAR);"
+    ]
+  ]
+}

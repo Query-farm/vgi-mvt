@@ -1,0 +1,18 @@
+{
+  "query": "SELECT layer,count(*) AS rows FROM mvt.main.read_tiles('fixtures/edges.pmtiles',zoom:=3,max_tiles:=64) GROUP BY layer ORDER BY layer",
+  "captured_at": "2026-11-14T22:44:39.056710+00:00",
+  "columns": [
+    "layer",
+    "rows"
+  ],
+  "rows": [
+    [
+      "areas",
+      2
+    ],
+    [
+      "roads",
+      2
+    ]
+  ]
+}

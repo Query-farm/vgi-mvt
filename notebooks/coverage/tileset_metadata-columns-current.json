@@ -1,0 +1,30 @@
+{
+  "query": "DESCRIBE SELECT * FROM mvt.main.tileset_metadata('fixtures/edges.pmtiles')",
+  "captured_at": "2026-11-14T22:44:44.042282+00:00",
+  "columns": [
+    "column_name",
+    "column_type",
+    "null",
+    "key",
+    "default",
+    "extra"
+  ],
+  "rows": [
+    [
+      "key",
+      "VARCHAR",
+      "YES",
+      null,
+      null,
+      null
+    ],
+    [
+      "value",
+      "VARCHAR",
+      "YES",
+      null,
+      null,
+      null
+    ]
+  ]
+}

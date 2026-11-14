@@ -1,0 +1,592 @@
+{
+  "schema_version": 1,
+  "status": "met",
+  "meets_target": true,
+  "catalogs": {
+    "released": {
+      "catalog_status": "verified",
+      "revision": "v0.3.0",
+      "catalog_sha256": "c2482e5732a2a12a643d008db8279856280956eeff1812cab41e3f8eeacc94c3",
+      "collection_reconciled": true,
+      "denominator": 8,
+      "observed_objects": 8,
+      "required": 8,
+      "verified_count": 8,
+      "candidate_count": 0,
+      "fraction": 1.0,
+      "meets_target": true,
+      "exact_runtime_count": 8,
+      "runtime_revisions": [
+        "v0.3.0"
+      ],
+      "covered": [
+        {
+          "schema": [
+            "main"
+          ],
+          "name": "areas"
+        },
+        {
+          "schema": [
+            "main"
+          ],
+          "name": "mvt_decode"
+        },
+        {
+          "schema": [
+            "main"
+          ],
+          "name": "read_mvt"
+        },
+        {
+          "schema": [
+            "main"
+          ],
+          "name": "read_tiles"
+        },
+        {
+          "schema": [
+            "main"
+          ],
+          "name": "roads"
+        },
+        {
+          "schema": [
+            "main"
+          ],
+          "name": "tileset_layers"
+        },
+        {
+          "schema": [
+            "main"
+          ],
+          "name": "tileset_metadata"
+        },
+        {
+          "schema": [
+            "main"
+          ],
+          "name": "write_pmtiles"
+        }
+      ],
+      "uncovered": [],
+      "objects": [
+        {
+          "schema": [
+            "main"
+          ],
+          "name": "areas",
+          "kinds": [
+            "table"
+          ],
+          "signatures": [
+            "TABLE(layer VARCHAR, z INTEGER, x INTEGER, y INTEGER, feature_id UBIGINT, geometry_type VARCHAR, geometry GEOMETRY('EPSG:3857'), properties JSON, name VARCHAR)"
+          ],
+          "access": [
+            "read"
+          ],
+          "authentication": [
+            "none"
+          ]
+        },
+        {
+          "schema": [
+            "main"
+          ],
+          "name": "mvt_decode",
+          "kinds": [
+            "function"
+          ],
+          "signatures": [
+            "mvt_decode(coordinates VARCHAR, data TABLE, layer VARCHAR) -> TABLE(layer VARCHAR, z INTEGER, x INTEGER, y INTEGER, feature_id UBIGINT, geometry_type VARCHAR, geometry GEOMETRY('OGC:CRS84'), properties JSON)"
+          ],
+          "access": [
+            "read"
+          ],
+          "authentication": [
+            "none"
+          ]
+        },
+        {
+          "schema": [
+            "main"
+          ],
+          "name": "read_mvt",
+          "kinds": [
+            "function"
+          ],
+          "signatures": [
+            "read_mvt(coordinates VARCHAR, layer VARCHAR, source VARCHAR, x BIGINT, y BIGINT, z BIGINT) -> TABLE(layer VARCHAR, z INTEGER, x INTEGER, y INTEGER, feature_id UBIGINT, geometry_type VARCHAR, geometry GEOMETRY('OGC:CRS84'), properties JSON)"
+          ],
+          "access": [
+            "read"
+          ],
+          "authentication": [
+            "none"
+          ]
+        },
+        {
+          "schema": [
+            "main"
+          ],
+          "name": "read_tiles",
+          "kinds": [
+            "function"
+          ],
+          "signatures": [
+            "read_tiles(coordinates VARCHAR, east DOUBLE, layer VARCHAR, max_tiles BIGINT, north DOUBLE, source VARCHAR, south DOUBLE, tile_edges VARCHAR, west DOUBLE, zoom BIGINT) -> TABLE(layer VARCHAR, z INTEGER, x INTEGER, y INTEGER, feature_id UBIGINT, geometry_type VARCHAR, geometry GEOMETRY('EPSG:3857'), properties JSON)"
+          ],
+          "access": [
+            "read"
+          ],
+          "authentication": [
+            "none"
+          ]
+        },
+        {
+          "schema": [
+            "main"
+          ],
+          "name": "roads",
+          "kinds": [
+            "table"
+          ],
+          "signatures": [
+            "TABLE(layer VARCHAR, z INTEGER, x INTEGER, y INTEGER, feature_id UBIGINT, geometry_type VARCHAR, geometry GEOMETRY('EPSG:3857'), properties JSON, name VARCHAR, kind VARCHAR)"
+          ],
+          "access": [
+            "read"
+          ],
+          "authentication": [
+            "none"
+          ]
+        },
+        {
+          "schema": [
+            "main"
+          ],
+          "name": "tileset_layers",
+          "kinds": [
+            "function"
+          ],
+          "signatures": [
+            "tileset_layers(source VARCHAR) -> TABLE(layer VARCHAR, field VARCHAR, type VARCHAR, description VARCHAR, minzoom INTEGER, maxzoom INTEGER)"
+          ],
+          "access": [
+            "read"
+          ],
+          "authentication": [
+            "none"
+          ]
+        },
+        {
+          "schema": [
+            "main"
+          ],
+          "name": "tileset_metadata",
+          "kinds": [
+            "function"
+          ],
+          "signatures": [
+            "tileset_metadata(source VARCHAR) -> TABLE(key VARCHAR, value VARCHAR)"
+          ],
+          "access": [
+            "read"
+          ],
+          "authentication": [
+            "none"
+          ]
+        },
+        {
+          "schema": [
+            "main"
+          ],
+          "name": "write_pmtiles",
+          "kinds": [
+            "function"
+          ],
+          "signatures": [
+            "write_pmtiles(attribution VARCHAR, buffer DOUBLE, description VARCHAR, extent BIGINT, geometry_column VARCHAR, id_column VARCHAR, layer VARCHAR, layer_column VARCHAR, max_tile_bytes BIGINT, max_tiles BIGINT, maxzoom BIGINT, maxzoom_column VARCHAR, minzoom BIGINT, minzoom_column VARCHAR, name VARCHAR, properties_column VARCHAR, simplify DOUBLE) -> COPY Count BIGINT"
+          ],
+          "access": [
+            "write"
+          ],
+          "authentication": [
+            "none"
+          ]
+        }
+      ],
+      "issues": []
+    },
+    "current": {
+      "catalog_status": "verified",
+      "revision": "81282ed09ae9793b1ca91860e1f4cb32d157aeb6",
+      "catalog_sha256": "f33539c4cefc536fe9099224fdc101b3fa3a6fe8b1220d18a66868616b1a8c2c",
+      "collection_reconciled": true,
+      "denominator": 8,
+      "observed_objects": 8,
+      "required": 8,
+      "verified_count": 8,
+      "candidate_count": 0,
+      "fraction": 1.0,
+      "meets_target": true,
+      "exact_runtime_count": 0,
+      "runtime_revisions": [
+        "v0.3.0"
+      ],
+      "covered": [
+        {
+          "schema": [
+            "main"
+          ],
+          "name": "areas"
+        },
+        {
+          "schema": [
+            "main"
+          ],
+          "name": "mvt_decode"
+        },
+        {
+          "schema": [
+            "main"
+          ],
+          "name": "read_mvt"
+        },
+        {
+          "schema": [
+            "main"
+          ],
+          "name": "read_tiles"
+        },
+        {
+          "schema": [
+            "main"
+          ],
+          "name": "roads"
+        },
+        {
+          "schema": [
+            "main"
+          ],
+          "name": "tileset_layers"
+        },
+        {
+          "schema": [
+            "main"
+          ],
+          "name": "tileset_metadata"
+        },
+        {
+          "schema": [
+            "main"
+          ],
+          "name": "write_pmtiles"
+        }
+      ],
+      "uncovered": [],
+      "objects": [
+        {
+          "schema": [
+            "main"
+          ],
+          "name": "areas",
+          "kinds": [
+            "table"
+          ],
+          "signatures": [
+            "TABLE(layer VARCHAR, z INTEGER, x INTEGER, y INTEGER, feature_id UBIGINT, geometry_type VARCHAR, geometry GEOMETRY('EPSG:3857'), properties JSON, name VARCHAR)"
+          ],
+          "access": [
+            "read"
+          ],
+          "authentication": [
+            "none"
+          ]
+        },
+        {
+          "schema": [
+            "main"
+          ],
+          "name": "mvt_decode",
+          "kinds": [
+            "function"
+          ],
+          "signatures": [
+            "mvt_decode(coordinates VARCHAR, data TABLE, layer VARCHAR) -> TABLE(layer VARCHAR, z INTEGER, x INTEGER, y INTEGER, feature_id UBIGINT, geometry_type VARCHAR, geometry GEOMETRY('OGC:CRS84'), properties JSON)"
+          ],
+          "access": [
+            "read"
+          ],
+          "authentication": [
+            "none"
+          ]
+        },
+        {
+          "schema": [
+            "main"
+          ],
+          "name": "read_mvt",
+          "kinds": [
+            "function"
+          ],
+          "signatures": [
+            "read_mvt(coordinates VARCHAR, layer VARCHAR, source VARCHAR, x BIGINT, y BIGINT, z BIGINT) -> TABLE(layer VARCHAR, z INTEGER, x INTEGER, y INTEGER, feature_id UBIGINT, geometry_type VARCHAR, geometry GEOMETRY('OGC:CRS84'), properties JSON)"
+          ],
+          "access": [
+            "read"
+          ],
+          "authentication": [
+            "none"
+          ]
+        },
+        {
+          "schema": [
+            "main"
+          ],
+          "name": "read_tiles",
+          "kinds": [
+            "function"
+          ],
+          "signatures": [
+            "read_tiles(coordinates VARCHAR, east DOUBLE, layer VARCHAR, max_tiles BIGINT, north DOUBLE, source VARCHAR, south DOUBLE, tile_edges VARCHAR, west DOUBLE, zoom BIGINT) -> TABLE(layer VARCHAR, z INTEGER, x INTEGER, y INTEGER, feature_id UBIGINT, geometry_type VARCHAR, geometry GEOMETRY('EPSG:3857'), properties JSON)"
+          ],
+          "access": [
+            "read"
+          ],
+          "authentication": [
+            "none"
+          ]
+        },
+        {
+          "schema": [
+            "main"
+          ],
+          "name": "roads",
+          "kinds": [
+            "table"
+          ],
+          "signatures": [
+            "TABLE(layer VARCHAR, z INTEGER, x INTEGER, y INTEGER, feature_id UBIGINT, geometry_type VARCHAR, geometry GEOMETRY('EPSG:3857'), properties JSON, name VARCHAR, kind VARCHAR)"
+          ],
+          "access": [
+            "read"
+          ],
+          "authentication": [
+            "none"
+          ]
+        },
+        {
+          "schema": [
+            "main"
+          ],
+          "name": "tileset_layers",
+          "kinds": [
+            "function"
+          ],
+          "signatures": [
+            "tileset_layers(source VARCHAR) -> TABLE(layer VARCHAR, field VARCHAR, type VARCHAR, description VARCHAR, minzoom INTEGER, maxzoom INTEGER)"
+          ],
+          "access": [
+            "read"
+          ],
+          "authentication": [
+            "none"
+          ]
+        },
+        {
+          "schema": [
+            "main"
+          ],
+          "name": "tileset_metadata",
+          "kinds": [
+            "function"
+          ],
+          "signatures": [
+            "tileset_metadata(source VARCHAR) -> TABLE(key VARCHAR, value VARCHAR)"
+          ],
+          "access": [
+            "read"
+          ],
+          "authentication": [
+            "none"
+          ]
+        },
+        {
+          "schema": [
+            "main"
+          ],
+          "name": "write_pmtiles",
+          "kinds": [
+            "function"
+          ],
+          "signatures": [
+            "write_pmtiles(attribution VARCHAR, buffer DOUBLE, description VARCHAR, extent BIGINT, geometry_column VARCHAR, id_column VARCHAR, layer VARCHAR, layer_column VARCHAR, max_tile_bytes BIGINT, max_tiles BIGINT, maxzoom BIGINT, maxzoom_column VARCHAR, minzoom BIGINT, minzoom_column VARCHAR, name VARCHAR, properties_column VARCHAR, simplify DOUBLE) -> COPY Count BIGINT"
+          ],
+          "access": [
+            "write"
+          ],
+          "authentication": [
+            "none"
+          ]
+        }
+      ],
+      "issues": []
+    }
+  },
+  "interface_drift": {
+    "known": true,
+    "current_only": [],
+    "released_only": [],
+    "changed": []
+  },
+  "notebooks": {
+    "01_tile_fragments_and_feature_counts.ipynb": {
+      "verified": true,
+      "issues": []
+    },
+    "02_retiled_identity_and_coordinates.ipynb": {
+      "verified": true,
+      "issues": []
+    }
+  },
+  "examples": [
+    {
+      "status": "verified",
+      "issues": [],
+      "verified_catalogs": [
+        "released",
+        "current"
+      ],
+      "object": {
+        "schema": [
+          "main"
+        ],
+        "name": "tileset_metadata"
+      },
+      "notebook": "01_tile_fragments_and_feature_counts.ipynb",
+      "runtime_revision": "v0.3.0",
+      "runtime_catalog_sha256": "c2482e5732a2a12a643d008db8279856280956eeff1812cab41e3f8eeacc94c3"
+    },
+    {
+      "status": "verified",
+      "issues": [],
+      "verified_catalogs": [
+        "released",
+        "current"
+      ],
+      "object": {
+        "schema": [
+          "main"
+        ],
+        "name": "tileset_layers"
+      },
+      "notebook": "01_tile_fragments_and_feature_counts.ipynb",
+      "runtime_revision": "v0.3.0",
+      "runtime_catalog_sha256": "c2482e5732a2a12a643d008db8279856280956eeff1812cab41e3f8eeacc94c3"
+    },
+    {
+      "status": "verified",
+      "issues": [],
+      "verified_catalogs": [
+        "released",
+        "current"
+      ],
+      "object": {
+        "schema": [
+          "main"
+        ],
+        "name": "read_tiles"
+      },
+      "notebook": "01_tile_fragments_and_feature_counts.ipynb",
+      "runtime_revision": "v0.3.0",
+      "runtime_catalog_sha256": "c2482e5732a2a12a643d008db8279856280956eeff1812cab41e3f8eeacc94c3"
+    },
+    {
+      "status": "verified",
+      "issues": [],
+      "verified_catalogs": [
+        "released",
+        "current"
+      ],
+      "object": {
+        "schema": [
+          "main"
+        ],
+        "name": "areas"
+      },
+      "notebook": "01_tile_fragments_and_feature_counts.ipynb",
+      "runtime_revision": "v0.3.0",
+      "runtime_catalog_sha256": "c2482e5732a2a12a643d008db8279856280956eeff1812cab41e3f8eeacc94c3"
+    },
+    {
+      "status": "verified",
+      "issues": [],
+      "verified_catalogs": [
+        "released",
+        "current"
+      ],
+      "object": {
+        "schema": [
+          "main"
+        ],
+        "name": "roads"
+      },
+      "notebook": "01_tile_fragments_and_feature_counts.ipynb",
+      "runtime_revision": "v0.3.0",
+      "runtime_catalog_sha256": "c2482e5732a2a12a643d008db8279856280956eeff1812cab41e3f8eeacc94c3"
+    },
+    {
+      "status": "verified",
+      "issues": [],
+      "verified_catalogs": [
+        "released",
+        "current"
+      ],
+      "object": {
+        "schema": [
+          "main"
+        ],
+        "name": "read_mvt"
+      },
+      "notebook": "02_retiled_identity_and_coordinates.ipynb",
+      "runtime_revision": "v0.3.0",
+      "runtime_catalog_sha256": "c2482e5732a2a12a643d008db8279856280956eeff1812cab41e3f8eeacc94c3"
+    },
+    {
+      "status": "verified",
+      "issues": [],
+      "verified_catalogs": [
+        "released",
+        "current"
+      ],
+      "object": {
+        "schema": [
+          "main"
+        ],
+        "name": "mvt_decode"
+      },
+      "notebook": "02_retiled_identity_and_coordinates.ipynb",
+      "runtime_revision": "v0.3.0",
+      "runtime_catalog_sha256": "c2482e5732a2a12a643d008db8279856280956eeff1812cab41e3f8eeacc94c3"
+    },
+    {
+      "status": "verified",
+      "issues": [],
+      "verified_catalogs": [
+        "released",
+        "current"
+      ],
+      "object": {
+        "schema": [
+          "main"
+        ],
+        "name": "write_pmtiles"
+      },
+      "notebook": "02_retiled_identity_and_coordinates.ipynb",
+      "runtime_revision": "v0.3.0",
+      "runtime_catalog_sha256": "c2482e5732a2a12a643d008db8279856280956eeff1812cab41e3f8eeacc94c3"
+    }
+  ],
+  "issues": []
+}

@@ -1,0 +1,327 @@
+{
+  "query": "SELECT * FROM duckdb_functions() WHERE database_name='fixture_layers' ORDER BY schema_name,function_name",
+  "captured_at": "2026-11-14T22:58:07.470059+00:00",
+  "columns": [
+    "database_name",
+    "database_oid",
+    "schema_name",
+    "function_name",
+    "alias_of",
+    "function_type",
+    "description",
+    "comment",
+    "tags",
+    "return_type",
+    "parameters",
+    "parameter_types",
+    "varargs",
+    "macro_definition",
+    "has_side_effects",
+    "internal",
+    "extension_name",
+    "function_oid",
+    "examples",
+    "stability",
+    "categories"
+  ],
+  "rows": [
+    [
+      "fixture_layers",
+      "22964",
+      "main",
+      "mvt_decode",
+      null,
+      "table",
+      "Decode vector tile BLOBs from a query (tile, z, x, y) into one row per feature",
+      null,
+      {
+        "vgi.category": "decoders",
+        "vgi.doc_llm": "Table in-out function: pass a subquery whose rows hold vector tiles and get one row per feature back. The input needs a `BLOB` column `tile` (or `tile_data`; gzip is detected) and whole-number columns `z`, `x`, `y` in the XYZ scheme (row 0 at the north). MBTiles rows are TMS: convert with `(1 << zoom_level) - 1 - tile_row AS y`. Named arguments `layer` and `coordinates` work as in `read_tiles`. Output columns: layer, z, x, y, feature_id, geometry_type, geometry (GEOMETRY), properties (JSON). Use `read_tiles` instead when the tileset is a file or URL.",
+        "vgi.doc_md": "## mvt_decode(data, layer := NULL, coordinates := 'wgs84')\n\nExplode vector-tile blobs that are already in DuckDB into features. Input rows need `tile` (`BLOB`) and XYZ `z`, `x`, `y`. MBTiles rows are TMS: flip them with `(1 << zoom_level) - 1 - tile_row`.",
+        "vgi.example_queries": "[{\"description\": \"Decode MBTiles rows read with DuckDB's sqlite extension\", \"sql\": \"SELECT layer, count(*) AS n FROM mvt.main.mvt_decode((SELECT tile_data AS tile, zoom_level AS z, tile_column AS x, (1 << zoom_level) - 1 - tile_row AS y FROM sqlite_scan('test/fixtures/sample.mbtiles', 'tiles') WHERE zoom_level = 2)) GROUP BY layer ORDER BY n DESC\"}]",
+        "vgi.executable_examples": "[{\"description\": \"Decode a hand-made tile holding one point at the centre of tile 0/0/0\", \"sql\": \"SELECT layer, feature_id, ST_AsText(geometry) AS wkt FROM mvt.main.mvt_decode((SELECT from_hex('1a2e78020a06706f696e7473120f0807120200001801220509802080201a046e616d6522080a066f726967696e288020') AS tile, 0 AS z, 0 AS x, 0 AS y)) ORDER BY layer\", \"expected_result\": [[\"points\", 7, \"POINT (0 0)\"]]}]",
+        "vgi.keywords": "[\"vector tile\", \"mvt\", \"decode\", \"blob\", \"protobuf\", \"mbtiles sqlite\", \"table in-out\", \"geometry\"]",
+        "vgi.result_columns_schema": "[{\"name\": \"layer\", \"type\": \"VARCHAR\", \"description\": \"Vector tile layer name.\"}, {\"name\": \"z\", \"type\": \"INTEGER\", \"description\": \"Tile zoom level.\"}, {\"name\": \"x\", \"type\": \"INTEGER\", \"description\": \"Tile column (XYZ scheme).\"}, {\"name\": \"y\", \"type\": \"INTEGER\", \"description\": \"Tile row (XYZ scheme, 0 at the north).\"}, {\"name\": \"feature_id\", \"type\": \"UBIGINT\", \"description\": \"Feature id from the tile; NULL if absent.\"}, {\"name\": \"geometry_type\", \"type\": \"VARCHAR\", \"description\": \"OGC geometry type of the feature.\"}, {\"name\": \"geometry\", \"type\": \"GEOMETRY\", \"description\": \"Feature geometry (WGS84 lon/lat by default).\"}, {\"name\": \"properties\", \"type\": \"JSON\", \"description\": \"All feature attributes as a JSON object.\"}]",
+        "vgi.title": "Decode Tile Blobs"
+      },
+      null,
+      [
+        "data",
+        "layer",
+        "coordinates"
+      ],
+      [
+        "TABLE",
+        "VARCHAR",
+        "VARCHAR"
+      ],
+      null,
+      null,
+      null,
+      true,
+      null,
+      22968,
+      [
+        "SELECT layer, count(*) AS n FROM mvt.main.mvt_decode((SELECT tile_data AS tile, zoom_level AS z, tile_column AS x, (1 << zoom_level) - 1 - tile_row AS y FROM sqlite_scan('test/fixtures/sample.mbtiles', 'tiles') WHERE zoom_level = 2)) GROUP BY layer ORDER BY n DESC"
+      ],
+      null,
+      []
+    ],
+    [
+      "fixture_layers",
+      "22964",
+      "main",
+      "read_mvt",
+      null,
+      "table",
+      "Read the features of one Mapbox Vector Tile (.mvt/.pbf) at a given z/x/y",
+      null,
+      {
+        "vgi.category": "readers",
+        "vgi.doc_llm": "Decode a single Mapbox Vector Tile file or URL into rows, one per feature. A tile stores coordinates relative to its own corner, so you must pass its zoom `z`, column `x` and row `y` (XYZ scheme, row 0 at the north) to get real coordinates back. Named arguments: `layer` (one layer, plus a typed column per attribute inferred from the tile) and `coordinates` ('wgs84', 'web_mercator' or 'tile'). Columns match `read_tiles`: layer, z, x, y, feature_id, geometry_type, geometry, properties.",
+        "vgi.doc_md": "## read_mvt(source, z, x, y, layer := NULL, coordinates := 'wgs84')\n\nDecode one `.mvt` / `.pbf` tile (file or URL, gzip detected). The tile address is needed to turn tile pixels back into longitude/latitude.",
+        "vgi.example_queries": "[{\"description\": \"Cities from one tile with their attributes as typed columns\", \"sql\": \"SELECT name, geometry FROM mvt.main.read_mvt('test/fixtures/0-0-0.mvt', 0, 0, 0, layer := 'cities') ORDER BY population DESC\"}, {\"description\": \"Feature counts per layer of a Mapbox Streets sample tile\", \"sql\": \"SELECT layer, count(*) AS features FROM mvt.main.read_mvt('https://raw.githubusercontent.com/mapbox/vector-tile-js/main/test/fixtures/14-8801-5371.vector.pbf', 14, 8801, 5371) GROUP BY layer ORDER BY features DESC\"}]",
+        "vgi.executable_examples": "[{\"description\": \"Features per geometry type in the fixture tile\", \"sql\": \"SELECT geometry_type, count(*) AS n FROM mvt.main.read_mvt('test/fixtures/0-0-0.mvt', 0, 0, 0) GROUP BY geometry_type ORDER BY geometry_type\", \"expected_result\": [[\"POINT\", 4], [\"POLYGON\", 2]]}]",
+        "vgi.keywords": "[\"vector tile\", \"mvt\", \"pbf\", \"mapbox vector tile\", \"protobuf\", \"decode tile\", \"geometry\", \"z/x/y\"]",
+        "vgi.result_dynamic_columns_md": "**Without `layer`** (every layer):\n\n| Name | Type | Description |\n|---|---|---|\n| layer | VARCHAR | Vector tile layer name. |\n| z | INTEGER | Tile zoom level. |\n| x | INTEGER | Tile column (XYZ scheme). |\n| y | INTEGER | Tile row (XYZ scheme, 0 at the north). |\n| feature_id | UBIGINT | Feature id from the tile; NULL if absent. |\n| geometry_type | VARCHAR | OGC geometry type of the feature. |\n| geometry | GEOMETRY | Feature geometry (WGS84 lon/lat by default). |\n| properties | JSON | All feature attributes as a JSON object. |\n\n**With `layer := '<name>'`**: the columns above, then one column per attribute of that layer. Types are inferred from the tile's values: whole numbers `BIGINT`, other numbers `DOUBLE`, booleans `BOOLEAN`, strings or mixed values `VARCHAR`.\n\n| Name | Type | Description |\n|---|---|---|\n| layer | VARCHAR | Vector tile layer name. |\n| z | INTEGER | Tile zoom level. |\n| x | INTEGER | Tile column (XYZ scheme). |\n| y | INTEGER | Tile row (XYZ scheme, 0 at the north). |\n| feature_id | UBIGINT | Feature id from the tile; NULL if absent. |\n| geometry_type | VARCHAR | OGC geometry type of the feature. |\n| geometry | GEOMETRY | Feature geometry (WGS84 lon/lat by default). |\n| properties | JSON | All feature attributes as a JSON object. |\n| name | VARCHAR | Example: an attribute holding strings. |\n| population | BIGINT | Example: an attribute holding whole numbers. |\n| capital | BOOLEAN | Example: an attribute holding booleans. |\n",
+        "vgi.title": "Read One Vector Tile"
+      },
+      null,
+      [
+        "source",
+        "z",
+        "x",
+        "y",
+        "layer",
+        "coordinates"
+      ],
+      [
+        "VARCHAR",
+        "BIGINT",
+        "BIGINT",
+        "BIGINT",
+        "VARCHAR",
+        "VARCHAR"
+      ],
+      null,
+      null,
+      null,
+      true,
+      null,
+      22969,
+      [
+        "SELECT name, geometry FROM mvt.main.read_mvt('test/fixtures/0-0-0.mvt', 0, 0, 0, layer := 'cities') ORDER BY population DESC",
+        "SELECT layer, count(*) AS features FROM mvt.main.read_mvt('https://raw.githubusercontent.com/mapbox/vector-tile-js/main/test/fixtures/14-8801-5371.vector.pbf', 14, 8801, 5371) GROUP BY layer ORDER BY features DESC"
+      ],
+      null,
+      []
+    ],
+    [
+      "fixture_layers",
+      "22964",
+      "main",
+      "read_tiles",
+      null,
+      "table",
+      "Read the features of a PMTiles, MBTiles or XYZ vector tileset as rows with a GEOMETRY column",
+      null,
+      {
+        "vgi.category": "readers",
+        "vgi.doc_llm": "Decode a Mapbox Vector Tile tileset back into rows, one per feature. `source` is a PMTiles archive (local path or http(s) URL, read with range requests), a local MBTiles file, or a tile URL template with `{z}/{x}/{y}`. Named arguments: `zoom` (defaults to the tileset maxzoom), `layer` (read one layer and add a typed column per attribute), `west`/`south`/`east`/`north` (WGS84 bbox; all four or none; required for URL templates), `coordinates` ('wgs84' default, 'web_mercator' or 'tile') and `max_tiles` (default 10000; the call fails rather than read more). A constant `WHERE ST_Intersects(geometry, <geometry>)` (or ST_Within/ST_Contains/...) also narrows the tiles read, so it can replace the bbox arguments. Columns: layer, z, x, y, feature_id, geometry_type, geometry (GEOMETRY), properties (JSON) and, with `layer`, one typed column per layer attribute. `tile_edges` ('merge' default, 'clip', 'raw') controls features that cross tile edges: 'merge' returns one row per feature, joining the per-tile pieces that share a feature_id (features without an id may come back as several non-overlapping pieces); 'raw' returns each tile's copy, buffer included. A feature extending past the tiles read is cut at their edge. Use `tileset_layers` first to discover layer and attribute names.",
+        "vgi.doc_md": "## read_tiles(source, zoom := maxzoom, layer := NULL, west/south/east/north := NULL, coordinates := 'wgs84', max_tiles := 10000, tile_edges := 'merge')\n\nOne row per vector-tile feature, with a `GEOMETRY` column and a JSON `properties` column. Sources: PMTiles (file or URL), MBTiles (file) or an `{z}/{x}/{y}` URL template.\n\nPass `layer` to also get each attribute of that layer as its own typed column. Features crossing tile edges come back once (`tile_edges := 'merge'`); use `'raw'` for each tile's stored copy.",
+        "vgi.example_queries": "[{\"description\": \"Features per layer of the fixture tileset: one row each, joined across tile edges\", \"sql\": \"SELECT layer, geometry_type, count(*) AS features, round(sum(ST_Area(geometry)), 1) AS area FROM mvt.main.read_tiles('test/fixtures/edges.pmtiles', zoom := 3) GROUP BY ALL ORDER BY ALL\"}, {\"description\": \"A spatial filter on the geometry also chooses which tiles are read\", \"sql\": \"SELECT layer, count(*) AS features FROM mvt.main.read_tiles('test/fixtures/sample.pmtiles') WHERE ST_Intersects(geometry, ST_MakeEnvelope(8, 44, 18, 54)) GROUP BY layer ORDER BY layer\"}, {\"description\": \"Road kinds in the Protomaps Florence sample, read over HTTP range requests\", \"sql\": \"SELECT properties->>'pmap:kind' AS kind, count(*) AS n FROM mvt.main.read_tiles('https://raw.githubusercontent.com/protomaps/PMTiles/main/spec/v3/protomaps(vector)ODbL_firenze.pmtiles', zoom := 14) WHERE layer = 'roads' GROUP BY ALL ORDER BY n DESC\"}, {\"description\": \"US ZIP code areas touching a Manhattan bbox, from a remote PMTiles archive\", \"sql\": \"SELECT DISTINCT ZCTA5CE10 AS zip FROM mvt.main.read_tiles('https://r2-public.protomaps.com/protomaps-sample-datasets/cb_2018_us_zcta510_500k.pmtiles', zoom := 7, layer := 'zcta', west := -74.02, south := 40.70, east := -73.93, north := 40.80) WHERE ST_Intersects(geometry, ST_MakeEnvelope(-74.02, 40.70, -73.93, 40.80)) ORDER BY zip\"}]",
+        "vgi.executable_examples": "[{\"description\": \"Count the fixture tileset's features per layer at zoom 2\", \"sql\": \"SELECT layer, count(*) AS features FROM mvt.main.read_tiles('test/fixtures/sample.pmtiles', zoom := 2) GROUP BY layer ORDER BY layer\", \"expected_result\": [[\"cities\", 4], [\"regions\", 2]]}]",
+        "vgi.keywords": "[\"vector tiles\", \"mvt\", \"mapbox vector tile\", \"pmtiles\", \"mbtiles\", \"xyz tiles\", \"tileset\", \"protobuf\", \"geometry\", \"gis\", \"map tiles\", \"decode tiles\"]",
+        "vgi.result_dynamic_columns_md": "**Without `layer`** (every layer):\n\n| Name | Type | Description |\n|---|---|---|\n| layer | VARCHAR | Vector tile layer name. |\n| z | INTEGER | Tile zoom level. |\n| x | INTEGER | Tile column (XYZ scheme). |\n| y | INTEGER | Tile row (XYZ scheme, 0 at the north). |\n| feature_id | UBIGINT | Feature id from the tile; NULL if absent. |\n| geometry_type | VARCHAR | OGC geometry type of the feature. |\n| geometry | GEOMETRY | Feature geometry (WGS84 lon/lat by default). |\n| properties | JSON | All feature attributes as a JSON object. |\n\n**With `layer := '<name>'`**: the columns above, then one column per attribute of that layer. Number becomes `DOUBLE`, Boolean `BOOLEAN`, String and anything else `VARCHAR`; names that clash case-insensitively with another column are skipped (they stay in `properties`).\n\n| Name | Type | Description |\n|---|---|---|\n| layer | VARCHAR | Vector tile layer name. |\n| z | INTEGER | Tile zoom level. |\n| x | INTEGER | Tile column (XYZ scheme). |\n| y | INTEGER | Tile row (XYZ scheme, 0 at the north). |\n| feature_id | UBIGINT | Feature id from the tile; NULL if absent. |\n| geometry_type | VARCHAR | OGC geometry type of the feature. |\n| geometry | GEOMETRY | Feature geometry (WGS84 lon/lat by default). |\n| properties | JSON | All feature attributes as a JSON object. |\n| name | VARCHAR | Example: a String attribute. |\n| population | DOUBLE | Example: a Number attribute. |\n| capital | BOOLEAN | Example: a Boolean attribute. |\n",
+        "vgi.title": "Read Vector Tileset"
+      },
+      null,
+      [
+        "source",
+        "zoom",
+        "south",
+        "west",
+        "tile_edges",
+        "north",
+        "max_tiles",
+        "layer",
+        "east",
+        "coordinates"
+      ],
+      [
+        "VARCHAR",
+        "BIGINT",
+        "DOUBLE",
+        "DOUBLE",
+        "VARCHAR",
+        "DOUBLE",
+        "BIGINT",
+        "VARCHAR",
+        "DOUBLE",
+        "VARCHAR"
+      ],
+      null,
+      null,
+      null,
+      true,
+      null,
+      22970,
+      [
+        "SELECT layer, geometry_type, count(*) AS features, round(sum(ST_Area(geometry)), 1) AS area FROM mvt.main.read_tiles('test/fixtures/edges.pmtiles', zoom := 3) GROUP BY ALL ORDER BY ALL",
+        "SELECT layer, count(*) AS features FROM mvt.main.read_tiles('test/fixtures/sample.pmtiles') WHERE ST_Intersects(geometry, ST_MakeEnvelope(8, 44, 18, 54)) GROUP BY layer ORDER BY layer",
+        "SELECT properties->>'pmap:kind' AS kind, count(*) AS n FROM mvt.main.read_tiles('https://raw.githubusercontent.com/protomaps/PMTiles/main/spec/v3/protomaps(vector)ODbL_firenze.pmtiles', zoom := 14) WHERE layer = 'roads' GROUP BY ALL ORDER BY n DESC",
+        "SELECT DISTINCT ZCTA5CE10 AS zip FROM mvt.main.read_tiles('https://r2-public.protomaps.com/protomaps-sample-datasets/cb_2018_us_zcta510_500k.pmtiles', zoom := 7, layer := 'zcta', west := -74.02, south := 40.70, east := -73.93, north := 40.80) WHERE ST_Intersects(geometry, ST_MakeEnvelope(-74.02, 40.70, -73.93, 40.80)) ORDER BY zip"
+      ],
+      null,
+      []
+    ],
+    [
+      "fixture_layers",
+      "22964",
+      "main",
+      "tileset_layers",
+      null,
+      "table",
+      "List the layers of a vector tileset and the attributes (with types) of each",
+      null,
+      {
+        "vgi.category": "metadata",
+        "vgi.doc_llm": "Return one row per (layer, attribute) declared in a tileset's `vector_layers` metadata: layer, field, type (Number/String/Boolean), description, minzoom, maxzoom. Call this before `read_tiles` to learn the layer names and the typed columns `read_tiles(..., layer := '<name>')` will return. `source` is a PMTiles file or URL, or a local MBTiles file.",
+        "vgi.doc_md": "## tileset_layers(source)\n\nThe `vector_layers` schema of a PMTiles or MBTiles tileset: one row per layer attribute.",
+        "vgi.example_queries": "[{\"description\": \"Attribute names of each layer of the fixture MBTiles\", \"sql\": \"SELECT layer, list(field ORDER BY field) AS attributes FROM mvt.main.tileset_layers('test/fixtures/sample.mbtiles') GROUP BY layer ORDER BY layer\"}, {\"description\": \"How many attributes each layer of a remote PMTiles basemap declares\", \"sql\": \"SELECT layer, count(field) AS attributes FROM mvt.main.tileset_layers('https://raw.githubusercontent.com/protomaps/PMTiles/main/spec/v3/protomaps(vector)ODbL_firenze.pmtiles') GROUP BY layer ORDER BY layer\"}]",
+        "vgi.executable_examples": "[{\"description\": \"Attributes of the fixture tileset's cities layer\", \"sql\": \"SELECT field, type FROM mvt.main.tileset_layers('test/fixtures/sample.pmtiles') WHERE layer = 'cities' ORDER BY field\", \"expected_result\": [[\"capital\", \"Boolean\"], [\"name\", \"String\"], [\"population\", \"Number\"]]}]",
+        "vgi.keywords": "[\"vector_layers\", \"layers\", \"schema\", \"fields\", \"attributes\", \"tilejson\", \"pmtiles\", \"mbtiles\"]",
+        "vgi.result_columns_schema": "[{\"name\": \"layer\", \"type\": \"VARCHAR\", \"description\": \"Layer name.\"}, {\"name\": \"field\", \"type\": \"VARCHAR\", \"description\": \"Attribute name.\"}, {\"name\": \"type\", \"type\": \"VARCHAR\", \"description\": \"Declared attribute type.\"}, {\"name\": \"description\", \"type\": \"VARCHAR\", \"description\": \"Layer description.\"}, {\"name\": \"minzoom\", \"type\": \"INTEGER\", \"description\": \"Layer min zoom.\"}, {\"name\": \"maxzoom\", \"type\": \"INTEGER\", \"description\": \"Layer max zoom.\"}]",
+        "vgi.title": "Tileset Layers"
+      },
+      null,
+      [
+        "source"
+      ],
+      [
+        "VARCHAR"
+      ],
+      null,
+      null,
+      null,
+      true,
+      null,
+      22971,
+      [
+        "SELECT layer, list(field ORDER BY field) AS attributes FROM mvt.main.tileset_layers('test/fixtures/sample.mbtiles') GROUP BY layer ORDER BY layer",
+        "SELECT layer, count(field) AS attributes FROM mvt.main.tileset_layers('https://raw.githubusercontent.com/protomaps/PMTiles/main/spec/v3/protomaps(vector)ODbL_firenze.pmtiles') GROUP BY layer ORDER BY layer"
+      ],
+      null,
+      []
+    ],
+    [
+      "fixture_layers",
+      "22964",
+      "main",
+      "tileset_metadata",
+      null,
+      "table",
+      "Show a vector tileset's metadata (format, zoom range, bounds, attribution, ...) as key/value rows",
+      null,
+      {
+        "vgi.category": "metadata",
+        "vgi.doc_llm": "Return the metadata of a PMTiles (file or URL) or MBTiles (file) tileset as (key, value) text rows, sorted by key. Always includes format, minzoom, maxzoom and bounds ('west,south,east,north'); also any name, attribution, description, vector_layers (JSON) and generator-specific keys. Use it to find the zoom range before calling `read_tiles`.",
+        "vgi.doc_md": "## tileset_metadata(source)\n\nHeader and metadata of a PMTiles or MBTiles tileset as key/value rows.",
+        "vgi.example_queries": "[{\"description\": \"Name and bounds of the fixture PMTiles archive\", \"sql\": \"SELECT key, value FROM mvt.main.tileset_metadata('test/fixtures/sample.pmtiles') WHERE key IN ('name', 'bounds') ORDER BY key\"}, {\"description\": \"Max zoom of a remote PMTiles archive (reads only its header)\", \"sql\": \"SELECT value FROM mvt.main.tileset_metadata('https://r2-public.protomaps.com/protomaps-sample-datasets/cb_2018_us_zcta510_500k.pmtiles') WHERE key = 'maxzoom'\"}]",
+        "vgi.executable_examples": "[{\"description\": \"Zoom range of the fixture MBTiles\", \"sql\": \"SELECT key, value FROM mvt.main.tileset_metadata('test/fixtures/sample.mbtiles') WHERE key IN ('format', 'minzoom', 'maxzoom') ORDER BY key\", \"expected_result\": [[\"format\", \"mbtiles\"], [\"maxzoom\", \"3\"], [\"minzoom\", \"0\"]]}]",
+        "vgi.keywords": "[\"tileset metadata\", \"tilejson\", \"pmtiles header\", \"mbtiles metadata\", \"bounds\", \"zoom range\"]",
+        "vgi.result_columns_schema": "[{\"name\": \"key\", \"type\": \"VARCHAR\", \"description\": \"Metadata key.\"}, {\"name\": \"value\", \"type\": \"VARCHAR\", \"description\": \"Metadata value.\"}]",
+        "vgi.title": "Tileset Metadata"
+      },
+      null,
+      [
+        "source"
+      ],
+      [
+        "VARCHAR"
+      ],
+      null,
+      null,
+      null,
+      true,
+      null,
+      22972,
+      [
+        "SELECT key, value FROM mvt.main.tileset_metadata('test/fixtures/sample.pmtiles') WHERE key IN ('name', 'bounds') ORDER BY key",
+        "SELECT value FROM mvt.main.tileset_metadata('https://r2-public.protomaps.com/protomaps-sample-datasets/cb_2018_us_zcta510_500k.pmtiles') WHERE key = 'maxzoom'"
+      ],
+      null,
+      []
+    ],
+    [
+      "fixture_layers",
+      "22964",
+      "main",
+      "write_pmtiles",
+      null,
+      "table",
+      "COPY ... TO format that encodes rows with a GEOMETRY column as a PMTiles vector tileset",
+      null,
+      {
+        "vgi.category": "writers",
+        "vgi.doc_llm": "A COPY TO format, not a table function: use it as FORMAT 'mvt.pmtiles' in a COPY ... TO statement whose destination is a local .pmtiles path. Each row is a feature. The `GEOMETRY` column must be WGS84 lon/lat (or EPSG:3857). A `VARCHAR` column named `layer` (or `layer_column`) names each row's layer, so one COPY can write several layers via UNION ALL; without it every row goes to `layer` (default: the file name). A column named `feature_id` (or `id_column`) becomes the feature id, and a column named `properties` holding JSON objects is expanded into attributes, so read_tiles output can be written back. Every other column becomes an attribute (`VARCHAR`, numbers, `BOOLEAN`; dates as ISO text; lists and structs as JSON text); NULLs are omitted. Options: minzoom/maxzoom (default 0/14); minzoom_column/maxzoom_column for per-feature zoom ranges; simplify and buffer (pixels of a 256-pixel tile); extent (4096); max_tile_bytes (500000: fails rather than dropping features); max_tiles; name, description, attribution. ORDER BY sets drawing order. COPY reports the number of rows written.",
+        "vgi.doc_md": "## COPY ... TO (FORMAT 'mvt.pmtiles')\n\nEncode a query's rows as Mapbox Vector Tiles in a PMTiles archive. One row is one feature; a `layer` column puts rows in different layers of the same tiles, so a single COPY of a `UNION ALL` writes a whole multi-layer basemap.",
+        "vgi.example_queries": "[{\"description\": \"Write two cities as a one-layer tileset (zoom 0 to 8)\", \"sql\": \"COPY (SELECT 'cities' AS layer, name, population, ST_Point(lon, lat) AS geometry FROM (VALUES ('Rome', 2800000, 12.5, 41.9), ('Paris', 2100000, 2.35, 48.86)) t(name, population, lon, lat)) TO 'cities.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 8)\"}, {\"description\": \"Re-tile every layer of an existing tileset into a new archive\", \"sql\": \"COPY (SELECT layer, feature_id, properties, geometry FROM mvt.main.read_tiles('test/fixtures/sample.pmtiles')) TO 'sample-copy.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 4, name 'sample copy')\"}]",
+        "vgi.keywords": "[\"copy to\", \"export\", \"write\", \"tippecanoe\", \"tileset\", \"pmtiles\", \"mvt\", \"vector tiles\", \"basemap\"]",
+        "vgi.result_columns_schema": "[{\"name\": \"Count\", \"type\": \"BIGINT\", \"description\": \"Rows written (reported by COPY).\"}]",
+        "vgi.title": "Write PMTiles"
+      },
+      null,
+      [
+        "simplify",
+        "name",
+        "minzoom_column",
+        "maxzoom_column",
+        "properties_column",
+        "description",
+        "max_tiles",
+        "max_tile_bytes",
+        "geometry_column",
+        "layer_column",
+        "maxzoom",
+        "layer",
+        "extent",
+        "minzoom",
+        "id_column",
+        "attribution",
+        "buffer"
+      ],
+      [
+        "DOUBLE",
+        "VARCHAR",
+        "VARCHAR",
+        "VARCHAR",
+        "VARCHAR",
+        "VARCHAR",
+        "BIGINT",
+        "BIGINT",
+        "VARCHAR",
+        "VARCHAR",
+        "BIGINT",
+        "VARCHAR",
+        "BIGINT",
+        "BIGINT",
+        "VARCHAR",
+        "VARCHAR",
+        "DOUBLE"
+      ],
+      null,
+      null,
+      null,
+      true,
+      null,
+      22973,
+      [
+        "COPY (SELECT 'cities' AS layer, name, population, ST_Point(lon, lat) AS geometry FROM (VALUES ('Rome', 2800000, 12.5, 41.9), ('Paris', 2100000, 2.35, 48.86)) t(name, population, lon, lat)) TO 'cities.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 8)",
+        "COPY (SELECT layer, feature_id, properties, geometry FROM mvt.main.read_tiles('test/fixtures/sample.pmtiles')) TO 'sample-copy.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 4, name 'sample copy')"
+      ],
+      null,
+      []
+    ]
+  ]
+}

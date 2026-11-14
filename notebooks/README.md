@@ -1,108 +1,68 @@
-# Tile fragments and feature counts
+# Mapbox Vector Tile Reader examples
 
-[Open the executed notebook](01_tile_fragments_and_feature_counts.ipynb). It reads
-one synthetic archive with raw, clipped and merged tile-edge policies, compares
-row counts and projected measurements, and changes the zoom level.
+Two executed SQL stories use the public **v0.3.0** worker and unchanged repository test fixtures:
 
-## Run from this folder
+- [Tile fragments are not source features](01_tile_fragments_and_feature_counts.ipynb) compares raw, clipped and merged rows, metadata fields and directly attached layer tables. Change `ZOOM` from 3 to 2.
+- [Keep identities through a retile, then measure coordinate changes](02_retiled_identity_and_coordinates.ipynb) compares file/BLOB decoding, assigns controlled IDs, writes a local archive through COPY and measures its readback. Change `EXTENT` from 512 to 256.
 
-Install [uv](https://docs.astral.sh/uv/) and Git, then:
+The first story uses two invented roads and two invented areas. The second uses four city point records with fixture/historical attribute values and two invented polygons. Neither is a current map or observed infrastructure dataset. [Provenance](fixtures/provenance.json) records exact published fixture bytes. Source GeoJSON in the first example supplies only expected identity keys; all plotted geometry and measurements come from worker results and visible Spatial SQL.
+
+## Run from this folder or a single notebook
+
+Install [uv](https://docs.astral.sh/uv/) and Git, then run:
 
 ```bash
-uv sync --frozen
-uv run python execute.py
+uv sync --locked
+uv run --locked vgi-notebooks 01_tile_fragments_and_feature_counts.ipynb
+uv run --locked vgi-notebooks 02_retiled_identity_and_coordinates.ipynb
 ```
 
-The locked notebook environment uses Python 3.13–3.14 and published Haybarn
-2.0.0rc11. The worker runs in a separate Python 3.13 environment through a literal
-remote Git revision:
+The local environment pins shared tools **v0.3.31** with the `[runner]` extra. Each notebook's Colab link opens a single file; its conditional setup installs only the shared base package into that kernel. `prepare("mvt")` retrieves the seven companion files from immutable commit `a3b37be2154a02e553d1c2b6b19b736d5c63afd5`, verifies their SHA-256 hashes and makes the fixtures available. No parent repository, worker source tree or root `.venv` discovery is used.
+
+Visible SQL launches the worker in its separate Python 3.13 environment:
 
 ```sql
-ATTACH 'mvt' (TYPE vgi, LOCATION 'uvx --python 3.13 --with vgi-python==0.51.0 --with vgi-rpc==0.53.1 --with haybarn==1.5.5rc1 --with pmtiles==3.8.1 --with shapely==2.2.0 --from git+https://github.com/Query-farm/vgi-mvt@41aa112e5d72f2ee7481e68c45ba6e4e03174690 vgi-mvt-worker');
+INSTALL vgi FROM community;
+LOAD vgi;
+INSTALL spatial;
+LOAD spatial;
+ATTACH 'mvt' (TYPE vgi, LOCATION 'uvx --python 3.13 --from git+https://github.com/Query-farm/vgi-mvt@v0.3.0 vgi-mvt-worker');
 ```
 
-The release ships Python distributions rather than platform-native worker archives,
-so this verified Git launcher is used. It pins the source revision and the source
-lock's SDK/RPC, internal Haybarn, PMTiles and Shapely versions. The worker's internal
-Haybarn 1.5.5rc1 supports SDK filter handling; it is separate from the notebook's
-2.0.0rc11 engine. Neither engine is rebuilt. uv downloads/builds the Python worker
-package and caches its environment; no surrounding source checkout is needed.
-First use requires access to GitHub, package indexes and the VGI/Spatial extension
-repositories. No API credentials, tile server, GDAL command-line installation or
-live map data is required. This whole folder runs independently of the repository.
+Release v0.3.0 resolves to `3f013b731056f751a7168d0f833dfdc7607b0c63`. uv installs the released Python package with its declared dependencies and caches it; no transitive override stack is needed. The notebook uses published Haybarn 2.0.0rc11. Initial retrieval needs GitHub, Python package indexes and VGI/Spatial extension access. No API credentials, live tile server, GDAL installation or engine build is needed. Shared connection setup uses a fresh empty SQL-secret directory and disables persistent secrets before ATTACH; cleanup checks the inventory and closes the session.
 
-For an editor, register and select the notebook environment:
+For an editor, select a kernel registered from this environment:
 
 ```bash
-uv run python -m ipykernel install --user --name mvt-examples \
+uv run --locked python -m ipykernel install --user --name mvt-examples \
   --display-name "Python (vgi-mvt notebooks)"
 ```
 
-Restart and run all after editing parameters. Setup and plotting code are folded;
-parameters, connection, retrieval and analytical SQL remain visible. The runner
-uses a temporary kernel with this folder as cwd, writes only after success and
-requires a separate output directory for overrides. Executed copies receive their
-fixtures, assets, helpers and environment/documentation companions. Generated
-validation files are ignored.
+Restart and Run All after editing the visible parameter cell. Setup and chart implementation are folded; the ATTACH, data retrieval, COPY and analytical SQL remain visible. Figures use native SVG plus matching GitHub image links. Analytical geometry stays in SQL; the companion only renders returned GeoJSON and numeric results.
 
-## Zoom experiment
+## Separate experiments
 
 ```bash
-uv run python execute.py --parameters '{"ZOOM":2}' \
-  --output-dir validation/zoom-2
+uv run --locked vgi-notebooks 01_tile_fragments_and_feature_counts.ipynb \
+  --parameters '{"ZOOM":2}' --output-dir artifacts/zoom-2
+uv run --locked vgi-notebooks 02_retiled_identity_and_coordinates.ipynb \
+  --parameters '{"EXTENT":256}' --output-dir artifacts/extent-256
 ```
 
-`ZOOM` accepts 2 or 3, default 3. Compare the three-panel map, per-layer row counts
-and measurement table. Larger tiles at the lower zoom change the fragment count;
-the four labeled source features remain represented. Exact decoded area and length
-can change because vector tiles are quantized and may be simplified by their
-encoder. Restore 3 for the saved default.
+Overrides require a separate output directory; the runner rejects overwriting the saved default. Experiments receive their own notebook/companions and branding. Default parameter values are 3 and 512 respectively.
 
-## Exact synthetic provenance
+The first experiment changes fragment counts and projected measures while all four fixture names remain covered. The archive has no encoded IDs: unique `(layer, name)` keys are a deliberate property of this fixture, not a general identity rule. Raw contains buffered copies; clip removes buffers; merge joins compatible pieces and can snap nearby line endpoints. Clipped and merged line lengths need not be identical. An output row's tile address identifies one contributing tile, not its full footprint.
 
-The files under [fixtures/](fixtures/) are unchanged copies from revision
-`41aa112e5d72f2ee7481e68c45ba6e4e03174690`:
+The second experiment keeps zoom 2 and changes the integer coordinate grid. File and BLOB readers see identical tile bytes and XYZ address 0/0/0. The six IDs are explicitly assigned notebook identities, not recovered real-world IDs. COPY writes only `artifacts/retiled.pmtiles`, a generated local file recreated by each run; the immutable inputs remain untouched. Six IDs and complete properties survive both experiments. Point displacement and polygon area are measured separately; the known excluded hole centre is a local control, not a general topology proof. The baseline is already quantized decoded geometry, not original observations.
 
-- `test/fixtures/edges.pmtiles`: committed archive generated with GDAL by
-  `scripts/make_fixtures.sh`.
-- `test/fixtures/src/edges_roads.geojson`: two invented lines, Diagonal and Short.
-- `test/fixtures/src/edges_areas.geojson`: two invented polygons, Four tiles and One tile.
+All distances and areas are planar EPSG:3857 comparisons, **not ground-distance or location-accuracy estimates**. The first map uses equal scales without a basemap. The round-trip figure uses fixed separate axes for point displacement and polygon area change. Zero buffer/simplification focuses the experiment on quantization and retile assembly; a preserved feature count never proves exact geometry.
 
-[provenance.json](fixtures/provenance.json) records exact sizes and SHA-256 hashes,
-which the notebook verifies. Coordinates and names are synthetic design inputs,
-not observations of real roads or areas. There is no capture timestamp. The source
-GeoJSON supplies only the expected feature-name inventory for validation; all
-charted geometries and measurements come from the decoded worker results.
+## Catalog scope and evidence
 
-The GDAL fixture has no encoded feature IDs. Its names are deliberately unique per
-layer, so `(layer, name)` is a valid check for this example, not a general identity
-rule. The worker joins matching properties and adjoining tile-edge pieces when IDs
-are absent; disconnected pieces can remain separate in other archives. A merged
-row's tile address is one contributing tile, not its complete coverage footprint.
+The actual unconfigured release catalog has **six fixed named surfaces**: `mvt_decode`, `read_mvt`, `read_tiles`, `tileset_layers`, `tileset_metadata` and `write_pmtiles`. The writer is invoked through `COPY ... FORMAT 'mvt.pmtiles'`; its 17 option rows describe one format, not 17 functions. The notebook checks real readback rather than relying on JupySQL to expose the COPY status count.
 
-## What the comparison measures
+Selecting `edges.pmtiles` exposes two additional typed tables, `areas` and `roads`. The first story actually reads both and reconciles them with the function result. [coverage.json](coverage.json) therefore records **8/8 for the explicitly selected fixture configuration**, including **6/6 fixed surfaces**. Another archive can add different layer names and columns; no universal static denominator is claimed for arbitrary future data.
 
-Raw returns stored buffered copies. Clip removes buffers but retains tile fragments.
-Merge joins compatible pieces. We materialize each mode once before capturing any
-DataFrames, so plotting does not repeat worker reads. Spatial SQL computes areas,
-lengths and output GeoJSON. Python only draws the returned geometry and formats
-results; it does not perform analytical merging or geometric measurements.
+[Complete runtime catalogs](coverage/catalog-released.json), full arguments, COPY registry, table/output DESCRIBE exports and [source review](coverage/source-compatibility.json) record both release and current public revision `81282ed09ae9793b1ca91860e1f4cb32d157aeb6`. Their signatures match; current source adds executable metadata examples/docs only. Notebook runs use the release, so current-interface coverage is compatible evidence rather than a claim that these notebooks were rerun against main.
 
-Coordinates are explicitly EPSG:3857 Web Mercator. Areas and lengths are planar
-projected-coordinate measures, not geodesic ground areas or distances. Map axes use
-millions of projected metres and equal scales. The chart indexes area and line
-length separately to their respective merged totals; it never adds those units.
-Dashed map lines come from SQL tile bounds using the standard Web Mercator world
-extent. No external basemap is implied.
-
-Clipped and merged polygon area agree within floating-point tolerance in this
-fixture. Line length is reported separately: merge snaps nearby endpoints at tile
-edges before joining, so exact clip/merge line-length equality is not assumed. At
-zoom 3 a small difference is observable; the SQL tables preserve it. The
-[implementation](https://github.com/Query-farm/vgi-mvt/blob/41aa112e5d72f2ee7481e68c45ba6e4e03174690/src/mvt_worker/edges.py)
-explains endpoint snapping. No claim of source-geometry precision or real-world
-measurement accuracy follows from these checks.
-
-To upgrade, change the literal source/dependency pins and repeat the default,
-experiment and source gates. See [STANDARD.md](STANDARD.md) and the pinned
-[worker README](https://github.com/Query-farm/vgi-mvt/blob/41aa112e5d72f2ee7481e68c45ba6e4e03174690/README.md).
+This notebook-only update reuses [successful source CI](https://github.com/Query-farm/vgi-mvt/actions/runs/43573972996) for the unchanged worker. Validation runs each default and its detached one-parameter experiment, a fresh notebook-only bootstrap in a compatible Python 3.12 kernel with eight libraries preloaded, six overwrite/parameter guards, output/figure review and coverage validation. Hosted Colab itself is not manually operated. See the [shared standard](STANDARD.md).

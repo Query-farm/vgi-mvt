@@ -1,0 +1,38 @@
+{
+  "query": "SELECT * FROM mvt.main.tileset_layers('fixtures/edges.pmtiles')",
+  "captured_at": "2026-11-14T22:44:39.049619+00:00",
+  "columns": [
+    "layer",
+    "field",
+    "type",
+    "description",
+    "minzoom",
+    "maxzoom"
+  ],
+  "rows": [
+    [
+      "roads",
+      "name",
+      "String",
+      null,
+      0,
+      3
+    ],
+    [
+      "roads",
+      "kind",
+      "String",
+      null,
+      0,
+      3
+    ],
+    [
+      "areas",
+      "name",
+      "String",
+      null,
+      0,
+      3
+    ]
+  ]
+}
