@@ -36,7 +36,7 @@ from vgi.metadata import FunctionExample
 
 from .archive import ArchiveWriter
 from .encode import LayerBuilder, Value, encode_pieces, encode_tile, value_kind
-from .meta import object_tags
+from .meta import SAMPLE_PMTILES, object_tags
 from .sources import is_url
 from .tiler import ZoomCutter, lonlat_to_unit, mercator_to_unit, split_by_dimension, tile_ids, unit_to_lonlat
 
@@ -649,7 +649,7 @@ class WritePmtiles(CopyToFunction[WriteArgs]):
             FunctionExample(
                 sql=(
                     "COPY (SELECT layer, feature_id, properties, geometry FROM mvt.main.read_tiles("
-                    "'test/fixtures/sample.pmtiles')) TO 'sample-copy.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 4, "
+                    f"'{SAMPLE_PMTILES}')) TO 'sample-copy.pmtiles' (FORMAT 'mvt.pmtiles', maxzoom 4, "
                     "name 'sample copy')"
                 ),
                 description="Re-tile every layer of an existing tileset into a new archive",

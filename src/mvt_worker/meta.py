@@ -53,6 +53,15 @@ FIRENZE_PMTILES = (
 ZCTA_PMTILES = "https://r2-public.protomaps.com/protomaps-sample-datasets/cb_2018_us_zcta510_500k.pmtiles"
 STREETS_TILE = "https://raw.githubusercontent.com/mapbox/vector-tile-js/main/test/fixtures/14-8801-5371.vector.pbf"
 
+# This repo's committed fixtures, served from the v0.3.1 release tag so examples return the same rows
+# for every user (a repo-relative path exists only in a checkout; VGI516). Pinned to a tag at which the
+# files exist, so the URLs never move. PMTiles and single tiles read over HTTP; MBTiles is local-only
+# (SQLite), so no example reads the MBTiles fixture.
+FIXTURES_URL = "https://raw.githubusercontent.com/Query-farm/vgi-mvt/v0.3.1/test/fixtures"
+SAMPLE_PMTILES = f"{FIXTURES_URL}/sample.pmtiles"
+EDGES_PMTILES = f"{FIXTURES_URL}/edges.pmtiles"
+FIXTURE_TILE = f"{FIXTURES_URL}/0-0-0.mvt"
+
 
 def keywords_array(keywords: str) -> str:
     """Turn ``"a, b, c"`` into the JSON array string ``vgi.keywords`` requires."""

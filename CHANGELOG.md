@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.2 (2026-11-14)
+
+- Examples return the same rows for every user, not only inside a checkout of this repo
+  (vgi-lint VGI516/VGI913): they read the committed fixtures (`sample.pmtiles`,
+  `edges.pmtiles`, `0-0-0.mvt`, `xyz/`) over HTTP from the v0.3.1 release tag instead of
+  repo-relative `test/fixtures/` paths. The MBTiles fixture is local-only (SQLite), so the
+  `tileset_layers`/`tileset_metadata` examples use the PMTiles fixture and the `mvt_decode`
+  example decodes XYZ tiles fetched with `read_blob`. The SQL surface is unchanged.
+
 ## 0.3.1 (2026-11-14)
 
 - The catalog comment (the worker's one-line description in directories) is now a short

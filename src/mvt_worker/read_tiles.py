@@ -29,7 +29,15 @@ from vgi.table_function import (
 from vgi_rpc import ArrowSerializableDataclass
 
 from .edges import TILE_EDGE_CHOICES, EdgeAssembler, TileEdges
-from .meta import FIRENZE_PMTILES, STREETS_TILE, ZCTA_PMTILES, object_tags
+from .meta import (
+    EDGES_PMTILES,
+    FIRENZE_PMTILES,
+    FIXTURE_TILE,
+    SAMPLE_PMTILES,
+    STREETS_TILE,
+    ZCTA_PMTILES,
+    object_tags,
+)
 from .mvt import COORDINATE_CHOICES, Coordinates, decode_tile, tile_context
 from .pushdown import INTERSECTS_EXTENT, clamp_to_world, intersect, pushed_bbox
 from .rows import RowBuilder, attribute_fields, dynamic_columns_md, infer_field_types, output_schema
@@ -43,8 +51,8 @@ DEFAULT_MAX_TILES = 10_000
 # lies inside a region (the square, outside its hole); the other cities get NULL.
 CITIES_IN_REGIONS_SQL = (
     "SELECT c.name AS city, r.label AS region "
-    "FROM mvt.main.read_tiles('test/fixtures/sample.pmtiles', layer := 'cities') AS c "
-    "LEFT JOIN mvt.main.read_tiles('test/fixtures/sample.pmtiles', layer := 'regions') AS r "
+    f"FROM mvt.main.read_tiles('{SAMPLE_PMTILES}', layer := 'cities') AS c "
+    f"LEFT JOIN mvt.main.read_tiles('{SAMPLE_PMTILES}', layer := 'regions') AS r "
     "ON ST_Within(c.geometry, r.geometry) ORDER BY city"
 )
 CITIES_IN_REGIONS_DESCRIPTION = (
@@ -271,7 +279,7 @@ class ReadTiles(TableFunctionGenerator[ReadTilesArgs, TileCursor]):
                         "description": "Count the fixture tileset's features per layer at zoom 2",
                         "sql": (
                             "SELECT layer, count(*) AS features FROM mvt.main.read_tiles("
-                            "'test/fixtures/sample.pmtiles', zoom := 2) GROUP BY layer ORDER BY layer"
+                            f"'{SAMPLE_PMTILES}', zoom := 2) GROUP BY layer ORDER BY layer"
                         ),
                         "expected_result": [["cities", 4], ["regions", 2]],
                     },
@@ -288,20 +296,20 @@ class ReadTiles(TableFunctionGenerator[ReadTilesArgs, TileCursor]):
                 ]
             ),
         }
-        # The first example uses a committed fixture: tools (and vgi-lint's scan probe) take sample
-        # arguments from it, so it must work offline. The public-tileset examples follow.
+        # The first example reads a committed fixture from a release tag: tools (and vgi-lint's scan
+        # probe) take sample arguments from it, and it is tiny. The public-tileset examples follow.
         examples = [
             FunctionExample(
                 sql=(
                     "SELECT layer, geometry_type, count(*) AS features, round(sum(ST_Area(geometry)), 1) AS area "
-                    "FROM mvt.main.read_tiles('test/fixtures/edges.pmtiles', zoom := 3) GROUP BY ALL ORDER BY ALL"
+                    f"FROM mvt.main.read_tiles('{EDGES_PMTILES}', zoom := 3) GROUP BY ALL ORDER BY ALL"
                 ),
                 description="Features per layer of the fixture tileset: one row each, joined across tile edges",
             ),
             FunctionExample(sql=CITIES_IN_REGIONS_SQL, description=CITIES_IN_REGIONS_DESCRIPTION),
             FunctionExample(
                 sql=(
-                    "SELECT layer, count(*) AS features FROM mvt.main.read_tiles('test/fixtures/sample.pmtiles') "
+                    f"SELECT layer, count(*) AS features FROM mvt.main.read_tiles('{SAMPLE_PMTILES}') "
                     "WHERE ST_Intersects(geometry, ST_MakeEnvelope(8, 44, 18, 54)) GROUP BY layer ORDER BY layer"
                 ),
                 description="A spatial filter on the geometry also chooses which tiles are read",
@@ -476,19 +484,19 @@ class ReadMvt(TableFunctionGenerator[ReadMvtArgs, DoneState]):
                         "description": "Features per geometry type in the fixture tile",
                         "sql": (
                             "SELECT geometry_type, count(*) AS n FROM mvt.main.read_mvt("
-                            "'test/fixtures/0-0-0.mvt', 0, 0, 0) GROUP BY geometry_type ORDER BY geometry_type"
+                            f"'{FIXTURE_TILE}', 0, 0, 0) GROUP BY geometry_type ORDER BY geometry_type"
                         ),
                         "expected_result": [["POINT", 4], ["POLYGON", 2]],
                     },
                 ]
             ),
         }
-        # The first example uses a committed fixture: tools (and vgi-lint's scan probe) take sample
-        # arguments from it, so it must work offline. The public-tileset examples follow.
+        # The first example reads a committed fixture from a release tag: tools (and vgi-lint's scan
+        # probe) take sample arguments from it, and it is tiny. The public-tileset examples follow.
         examples = [
             FunctionExample(
                 sql=(
-                    "SELECT name, geometry FROM mvt.main.read_mvt('test/fixtures/0-0-0.mvt', 0, 0, 0, "
+                    f"SELECT name, geometry FROM mvt.main.read_mvt('{FIXTURE_TILE}', 0, 0, 0, "
                     "layer := 'cities') ORDER BY population DESC"
                 ),
                 description="Cities from one tile with their attributes as typed columns",

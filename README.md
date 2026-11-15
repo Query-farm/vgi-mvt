@@ -84,13 +84,13 @@ geometry, properties`. With `layer := 'name'`, one typed column per attribute of
 layer follows.
 
 The functions combine. For example, check that each attribute a tileset declares is present
-on its decoded features (here the fixture tileset, from the repository root):
+on its decoded features (here the repository's fixture tileset, read over HTTP from a release tag):
 
 ```sql
 SELECT l.layer, l.field, count(*) AS features,
        count(*) FILTER (WHERE t.properties ->> l.field IS NOT NULL) AS with_field
-FROM mvt.main.tileset_layers('test/fixtures/sample.pmtiles') AS l
-JOIN mvt.main.read_tiles('test/fixtures/sample.pmtiles') AS t USING (layer)
+FROM mvt.main.tileset_layers('https://raw.githubusercontent.com/Query-farm/vgi-mvt/v0.3.1/test/fixtures/sample.pmtiles') AS l
+JOIN mvt.main.read_tiles('https://raw.githubusercontent.com/Query-farm/vgi-mvt/v0.3.1/test/fixtures/sample.pmtiles') AS t USING (layer)
 GROUP BY ALL ORDER BY ALL;
 ```
 
@@ -336,7 +336,7 @@ SELECT layer, count(*) FROM mvt.main.read_tiles('/abs/path/to/vgi-mvt/test/fixtu
 Or attach it from **Haybarn 2.0** (`uvx haybarn-cli`): `INSTALL vgi FROM community; LOAD vgi;`, then use the same `ATTACH`.
 
 Once a release is tagged, you can run it without cloning:
-`LOCATION 'uvx --from git+https://github.com/Query-farm/vgi-mvt@v0.3.1 vgi-mvt-worker'`.
+`LOCATION 'uvx --from git+https://github.com/Query-farm/vgi-mvt@v0.3.2 vgi-mvt-worker'`.
 
 ## Development
 

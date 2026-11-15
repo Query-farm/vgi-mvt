@@ -19,7 +19,7 @@ from vgi.metadata import FunctionExample
 from vgi.table_function import BindParams, ProcessParams
 from vgi.table_in_out_function import OutputCollector, TableInOutGenerator
 
-from .meta import object_tags
+from .meta import FIXTURES_URL, object_tags
 from .mvt import COORDINATE_CHOICES, Coordinates
 from .rows import RESULT_COLUMNS_DOC, RowBuilder, output_schema
 
@@ -102,12 +102,15 @@ class MvtDecode(TableInOutGenerator[MvtDecodeArgs]):
         examples = [
             FunctionExample(
                 sql=(
-                    "SELECT layer, count(*) AS n FROM mvt.main.mvt_decode((SELECT tile_data AS tile, "
-                    "zoom_level AS z, tile_column AS x, (1 << zoom_level) - 1 - tile_row AS y "
-                    "FROM sqlite_scan('test/fixtures/sample.mbtiles', 'tiles') WHERE zoom_level = 2)) "
-                    "GROUP BY layer ORDER BY n DESC"
+                    "SELECT layer, z, count(*) AS n FROM mvt.main.mvt_decode((SELECT content AS tile, "
+                    "p[-3]::INTEGER AS z, p[-2]::INTEGER AS x, split_part(p[-1], '.', 1)::INTEGER AS y "
+                    "FROM (SELECT content, string_split(filename, '/') AS p FROM read_blob(["
+                    f"'{FIXTURES_URL}/xyz/0/0/0.mvt', '{FIXTURES_URL}/xyz/1/0/0.mvt', "
+                    f"'{FIXTURES_URL}/xyz/1/1/0.mvt'])))) GROUP BY ALL ORDER BY ALL"
                 ),
-                description="Decode MBTiles rows read with DuckDB's sqlite extension",
+                description=(
+                    "Decode XYZ tile files fetched with read_blob, taking each tile's z/x/y from its URL path"
+                ),
             ),
         ]
 

@@ -18,16 +18,16 @@ from vgi.table_function import (
 )
 from vgi_rpc import ArrowSerializableDataclass
 
-from .meta import FIRENZE_PMTILES, ZCTA_PMTILES, column, object_tags
+from .meta import FIRENZE_PMTILES, SAMPLE_PMTILES, ZCTA_PMTILES, column, object_tags
 from .sources import TilesetInfo, TileSourceError, open_source
 
 # Composed examples: each checks a tileset's declared metadata against the features read_tiles
-# actually decodes from the same fixture.
+# actually decodes from the same fixture (served from a release tag; see meta.FIXTURES_URL).
 ATTRIBUTE_COVERAGE_SQL = (
     "SELECT l.layer, l.field, count(*) AS features, "
     "count(*) FILTER (WHERE t.properties ->> l.field IS NOT NULL) AS with_field "
-    "FROM mvt.main.tileset_layers('test/fixtures/sample.pmtiles') AS l "
-    "JOIN mvt.main.read_tiles('test/fixtures/sample.pmtiles') AS t USING (layer) "
+    f"FROM mvt.main.tileset_layers('{SAMPLE_PMTILES}') AS l "
+    f"JOIN mvt.main.read_tiles('{SAMPLE_PMTILES}') AS t USING (layer) "
     "GROUP BY ALL ORDER BY ALL"
 )
 ATTRIBUTE_COVERAGE_DESCRIPTION = (
@@ -36,8 +36,8 @@ ATTRIBUTE_COVERAGE_DESCRIPTION = (
 TILESTATS_CHECK_SQL = (
     "SELECT s.layer, s.count AS declared, count(t.layer) AS decoded "
     'FROM (SELECT unnest(from_json(value -> \'layers\', \'[{"layer": "VARCHAR", "count": "BIGINT"}]\'), '
-    "recursive := true) FROM mvt.main.tileset_metadata('test/fixtures/sample.pmtiles') WHERE key = 'tilestats') AS s "
-    "LEFT JOIN mvt.main.read_tiles('test/fixtures/sample.pmtiles') AS t USING (layer) "
+    f"recursive := true) FROM mvt.main.tileset_metadata('{SAMPLE_PMTILES}') WHERE key = 'tilestats') AS s "
+    f"LEFT JOIN mvt.main.read_tiles('{SAMPLE_PMTILES}') AS t USING (layer) "
     "GROUP BY ALL ORDER BY ALL"
 )
 TILESTATS_CHECK_DESCRIPTION = (
@@ -125,7 +125,7 @@ class TilesetLayers(TableFunctionGenerator[SourceArgs, Once]):
                     {
                         "description": "Attributes of the fixture tileset's cities layer",
                         "sql": (
-                            "SELECT field, type FROM mvt.main.tileset_layers('test/fixtures/sample.pmtiles') "
+                            f"SELECT field, type FROM mvt.main.tileset_layers('{SAMPLE_PMTILES}') "
                             "WHERE layer = 'cities' ORDER BY field"
                         ),
                         "expected_result": [["capital", "Boolean"], ["name", "String"], ["population", "Number"]],
@@ -145,15 +145,15 @@ class TilesetLayers(TableFunctionGenerator[SourceArgs, Once]):
                 ]
             ),
         }
-        # The first example uses a committed fixture: tools (and vgi-lint's scan probe) take sample
-        # arguments from it, so it must work offline. The public-tileset examples follow.
+        # The first example reads a committed fixture from a release tag: tools (and vgi-lint's scan
+        # probe) take sample arguments from it, and it is tiny. The public-tileset examples follow.
         examples = [
             FunctionExample(
                 sql=(
                     "SELECT layer, list(field ORDER BY field) AS attributes FROM mvt.main.tileset_layers("
-                    "'test/fixtures/sample.mbtiles') GROUP BY layer ORDER BY layer"
+                    f"'{SAMPLE_PMTILES}') GROUP BY layer ORDER BY layer"
                 ),
-                description="Attribute names of each layer of the fixture MBTiles",
+                description="Attribute names of each layer of the fixture PMTiles archive",
             ),
             FunctionExample(sql=ATTRIBUTE_COVERAGE_SQL, description=ATTRIBUTE_COVERAGE_DESCRIPTION),
             FunctionExample(
@@ -258,12 +258,12 @@ class TilesetMetadata(TableFunctionGenerator[SourceArgs, Once]):
             "vgi.executable_examples": json.dumps(
                 [
                     {
-                        "description": "Zoom range of the fixture MBTiles",
+                        "description": "Format and zoom range of the fixture PMTiles archive",
                         "sql": (
-                            "SELECT key, value FROM mvt.main.tileset_metadata('test/fixtures/sample.mbtiles') "
+                            f"SELECT key, value FROM mvt.main.tileset_metadata('{SAMPLE_PMTILES}') "
                             "WHERE key IN ('format', 'minzoom', 'maxzoom') ORDER BY key"
                         ),
-                        "expected_result": [["format", "mbtiles"], ["maxzoom", "3"], ["minzoom", "0"]],
+                        "expected_result": [["format", "pmtiles"], ["maxzoom", "3"], ["minzoom", "0"]],
                     },
                     {
                         "description": TILESTATS_CHECK_DESCRIPTION,
@@ -273,12 +273,12 @@ class TilesetMetadata(TableFunctionGenerator[SourceArgs, Once]):
                 ]
             ),
         }
-        # The first example uses a committed fixture: tools (and vgi-lint's scan probe) take sample
-        # arguments from it, so it must work offline. The public-tileset examples follow.
+        # The first example reads a committed fixture from a release tag: tools (and vgi-lint's scan
+        # probe) take sample arguments from it, and it is tiny. The public-tileset examples follow.
         examples = [
             FunctionExample(
                 sql=(
-                    "SELECT key, value FROM mvt.main.tileset_metadata('test/fixtures/sample.pmtiles') "
+                    f"SELECT key, value FROM mvt.main.tileset_metadata('{SAMPLE_PMTILES}') "
                     "WHERE key IN ('name', 'bounds') ORDER BY key"
                 ),
                 description="Name and bounds of the fixture PMTiles archive",

@@ -64,7 +64,14 @@ RESULT_COLUMNS_DOC = [
     {"name": "y", "type": "INTEGER", "description": "Tile row (XYZ scheme, 0 at the north)."},
     {"name": "feature_id", "type": "UBIGINT", "description": "Feature id from the tile; NULL if absent."},
     {"name": "geometry_type", "type": "VARCHAR", "description": "OGC geometry type of the feature."},
-    {"name": "geometry", "type": "GEOMETRY", "description": "Feature geometry (WGS84 lon/lat by default)."},
+    {
+        "name": "geometry",
+        "type": "GEOMETRY('OGC:CRS84')",
+        "description": (
+            "Feature geometry: WGS84 lon/lat (OGC:CRS84) by default, EPSG:3857 with "
+            "coordinates := 'web_mercator', no CRS with 'tile'."
+        ),
+    },
     {"name": "properties", "type": "JSON", "description": "All feature attributes as a JSON object."},
 ]
 
