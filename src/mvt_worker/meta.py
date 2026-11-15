@@ -77,6 +77,14 @@ def column(name: str, type_: pa.DataType, comment: str, *, nullable: bool = True
     return pa.field(name, type_, nullable=nullable, metadata={b"comment": comment.encode()})
 
 
+# The catalog's one-line description (VGI001): plain text, one paragraph, at most 300
+# characters. The long-form docs live in the ``vgi.doc_md`` and ``vgi.doc_llm`` tags.
+CATALOG_COMMENT = (
+    "Decodes Mapbox Vector Tiles from PMTiles and MBTiles files, XYZ tile servers, single tiles "
+    "and tile blobs into DuckDB rows with GEOMETRY and attribute columns, and writes query "
+    "results back out as PMTiles vector tilesets."
+)
+
 CATALOG_DOC_LLM = (
     "Decode Mapbox Vector Tiles (MVT, the protobuf tile format behind most web maps) back into "
     "DuckDB tables. Each feature becomes a row with its layer, tile address (z/x/y), feature id, a "

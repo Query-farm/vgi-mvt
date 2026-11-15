@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.1 (2026-11-14)
+
+- The catalog comment (the worker's one-line description in directories) is now a short
+  plain-text sentence instead of the Markdown overview, which stays in the catalog's
+  `vgi.doc_md` tag.
+- Composed example queries and a roads-crossing-areas agent task. The SQL surface is unchanged.
+
 ## 0.3.0 (2026-11-12)
 
 - Speaks VGI protocol 3.3 (vgi-python `>=0.51.0,<0.52`). The vgi DuckDB extension matches

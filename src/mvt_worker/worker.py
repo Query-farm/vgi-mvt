@@ -26,7 +26,7 @@ from .catalog import TilesetCatalog
 from .decode import MvtDecode
 from .layers import TilesetLayers, TilesetMetadata
 from .meta import (
-    CATALOG_DOC_MD,
+    CATALOG_COMMENT,
     CATALOG_NAME,
     CATALOG_TAGS,
     SCHEMA_CATEGORIES,
@@ -67,7 +67,7 @@ class MvtCatalog(TilesetCatalog):
 
     catalog = Catalog(
         name=CATALOG_NAME,
-        comment=CATALOG_DOC_MD,
+        comment=CATALOG_COMMENT,
         source_url=SOURCE_URL,
         tags=CATALOG_TAGS,
         schemas=[
