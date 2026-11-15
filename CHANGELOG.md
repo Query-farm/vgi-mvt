@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.3 (2026-11-14)
+
+- Docs link to upstream sources: the catalog docs now link the Mapbox Vector Tile, PMTiles v3
+  and MBTiles specifications (vgi-lint VGI183).
+- The `main` schema comment is now a one-line summary; its Markdown docs no longer repeat it
+  (vgi-lint VGI102).
+
 ## 0.3.2 (2026-11-14)
 
 - Examples return the same rows for every user, not only inside a checkout of this repo
@@ -8,10 +15,6 @@
   repo-relative `test/fixtures/` paths. The MBTiles fixture is local-only (SQLite), so the
   `tileset_layers`/`tileset_metadata` examples use the PMTiles fixture and the `mvt_decode`
   example decodes XYZ tiles fetched with `read_blob`. The SQL surface is unchanged.
-- Docs link to upstream sources: the catalog docs now link the Mapbox Vector Tile, PMTiles v3
-  and MBTiles specifications (vgi-lint VGI183).
-- The `main` schema comment is now a one-line summary; its Markdown docs no longer repeat it
-  (vgi-lint VGI102).
 
 ## 0.3.1 (2026-11-14)
 
