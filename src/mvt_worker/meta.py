@@ -119,8 +119,19 @@ CATALOG_DOC_MD = (
     "Coordinates come back as WGS84 longitude/latitude by default; Web Mercator metres and raw tile "
     "pixels are available too. Vector tiles are a lossy, display-oriented format: coordinates snap "
     "to a grid of usually 4096 per tile, and features are clipped at tile edges and simplified at low "
-    "zoom, so read the highest zoom for the most faithful geometry."
+    "zoom, so read the highest zoom for the most faithful geometry.\n\n"
+    "## Sources and references\n\n"
+    "- [Mapbox Vector Tile specification](https://github.com/mapbox/vector-tile-spec): the "
+    "protobuf tile encoding every decoder here reads.\n"
+    "- [PMTiles v3 specification](https://github.com/protomaps/PMTiles/blob/main/spec/v3/spec.md) "
+    "([Protomaps docs](https://docs.protomaps.com/pmtiles/)): the single-file archive format read "
+    "over HTTP range requests and written by COPY TO.\n"
+    "- [MBTiles specification](https://github.com/mapbox/mbtiles-spec): the SQLite tileset "
+    "container, including its TMS row order."
 )
+
+# The schema's one-line comment; the richer Markdown lives in ``SCHEMA_DOC_MD`` (VGI102).
+SCHEMA_COMMENT = "Vector tile readers and tileset catalogues that return features as GEOMETRY rows."
 
 SCHEMA_DOC_LLM = (
     "Vector tile readers. Every feature-reading function returns the same leading columns: layer, z, "
