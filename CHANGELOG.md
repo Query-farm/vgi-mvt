@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.4 (2026-11-16)
+
+- Require vgi-python `>=0.52.2,<0.53`; uv.lock re-locked.
+- Move to Python 3.14: `requires-python >=3.14`, CI, the Docker image and lint tooling target 3.14.
+
 ## 0.3.3 (2026-11-14)
 
 - Docs link to upstream sources: the catalog docs now link the Mapbox Vector Tile, PMTiles v3
