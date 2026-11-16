@@ -102,7 +102,7 @@ def _send(scheme: str, netloc: str, path: str, headers: dict[str, str]) -> http.
         try:
             conn.request("GET", path, headers=headers)
             return conn.getresponse()
-        except (http.client.HTTPException, OSError):
+        except http.client.HTTPException, OSError:
             _drop_connection(scheme, netloc)
             if fresh:  # the first failure may just be a stale keep-alive socket; a second is real
                 raise
@@ -268,7 +268,7 @@ def parse_vector_layers(raw: Any) -> list[LayerInfo]:
 def _int_or_none(v: Any) -> int | None:
     try:
         return int(v) if v is not None else None
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return None
 
 

@@ -2,7 +2,7 @@
 # One image, both transports:
 #   docker run -p 8000:8000 IMAGE         -> HTTP on $PORT (default 8000; GET /health)
 #   docker run -i IMAGE stdio             -> stdio worker, for DuckDB on the same host
-FROM python:3.13-slim
+FROM python:3.14-slim
 
 ARG VERSION=0.0.0
 ARG GIT_COMMIT=unknown

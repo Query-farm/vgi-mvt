@@ -77,7 +77,7 @@ class Diff:
         ours = decode_tile(raw)
         try:
             theirs = mapbox_vector_tile.decode(raw, default_options={"y_coord_down": True})
-        except (ValueError, IndexError):  # it rejects UNKNOWN types and some odd command streams
+        except ValueError, IndexError:  # it rejects UNKNOWN types and some odd command streams
             self.stats["reference_cannot_read"] += 1
             return
         self.stats["tiles"] += 1
@@ -221,7 +221,9 @@ def writer(n: int) -> bool:
     for z in range(0, 9):
         for key, data in src.fetch(src.tiles(z, None, 10_000_000)):
             diff.tile(f"{key}", key, data)
-            for lay in mapbox_vector_tile.decode(maybe_decompress(data), default_options={"y_coord_down": True}).values():
+            for lay in mapbox_vector_tile.decode(
+                maybe_decompress(data), default_options={"y_coord_down": True}
+            ).values():
                 for f in lay["features"]:
                     g = f.get("geometry") or {}
                     if g.get("type", "").endswith("Polygon") and not shape(g).is_valid:

@@ -313,7 +313,7 @@ convert it with `pmtiles convert`).
 
 ## Quick start
 
-**Prerequisites:** Python 3.13+ and [uv](https://docs.astral.sh/uv/).
+**Prerequisites:** Python 3.14+ and [uv](https://docs.astral.sh/uv/).
 
 ```bash
 git clone https://github.com/Query-farm/vgi-mvt && cd vgi-mvt

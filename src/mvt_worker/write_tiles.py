@@ -157,7 +157,7 @@ def _crs(f: pa.Field[Any]) -> str:
     raw = md.get(b"ARROW:extension:metadata", b"") or b"{}"
     try:
         crs = json.loads(raw).get("crs")
-    except (ValueError, AttributeError):
+    except ValueError, AttributeError:
         crs = None
     if crs in (None, "", {}):
         return "lonlat"

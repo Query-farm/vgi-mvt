@@ -34,7 +34,7 @@ def wkb_envelope(wkb: bytes) -> tuple[float, float, float, float] | None:
     box = [math.inf, math.inf, -math.inf, -math.inf]
     try:
         end = _read_geometry(memoryview(wkb), 0, box, depth=0)
-    except (_WkbError, struct.error, IndexError):
+    except _WkbError, struct.error, IndexError:
         return None
     if end != len(wkb) or not all(math.isfinite(v) for v in box):
         return None
