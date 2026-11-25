@@ -17,7 +17,7 @@ concurrency:
 env:
   # Pinned together: the SQL test runner and the metadata checker must speak the
   # same VGI protocol as the SDK. Template updates bump these (make template-diff).
-  HAYBARN_VERSION: "2.0.0rc11"
+  HAYBARN_VERSION: "2.0.1rc3"
 
 jobs:
   quality:

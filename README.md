@@ -333,10 +333,12 @@ ATTACH 'mvt' (TYPE vgi, LOCATION '/abs/path/to/vgi-mvt/.venv/bin/vgi-mvt-worker'
 SELECT layer, count(*) FROM mvt.main.read_tiles('/abs/path/to/vgi-mvt/test/fixtures/sample.pmtiles') GROUP BY layer;
 ```
 
-Or attach it from **Haybarn 2.0** (`uvx haybarn-cli`): `INSTALL vgi FROM community; LOAD vgi;`, then use the same `ATTACH`.
+Or attach it from **Haybarn 2.0.1 or newer** (`uvx haybarn-cli`): `INSTALL vgi FROM community; LOAD vgi;`, then use the same `ATTACH`.
+
+vgi-mvt 0.4.0 speaks VGI protocol 3.4, so it needs Haybarn 2.0.1 or newer (Haybarn 2.0.0 loads a 3.3 `vgi` extension that cannot attach it).
 
 Once a release is tagged, you can run it without cloning:
-`LOCATION 'uvx --from git+https://github.com/Query-farm/vgi-mvt@v0.3.4 vgi-mvt-worker'`.
+`LOCATION 'uvx --from git+https://github.com/Query-farm/vgi-mvt@v0.4.0 vgi-mvt-worker'`.
 
 ## Development
 
